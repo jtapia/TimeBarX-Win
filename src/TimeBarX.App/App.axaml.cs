@@ -14,6 +14,8 @@ public partial class App : Application
         AvaloniaXamlLoader.Load(this);
     }
 
+    public OverlayWindow? Overlay { get; private set; }
+
     public override void OnFrameworkInitializationCompleted()
     {
         DataContext = Controller;
@@ -21,9 +23,24 @@ public partial class App : Application
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
+            ShowPrimaryOverlay();
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private void ShowPrimaryOverlay()
+    {
+        var window = new OverlayWindow { DataContext = Controller };
+        window.Show();
+
+        var primary = window.Screens?.Primary;
+        if (primary is not null)
+        {
+            window.PositionOnScreen(primary);
+        }
+
+        Overlay = window;
     }
 
     private void OnStartClicked(object? sender, System.EventArgs e) => Controller.Start();
@@ -33,6 +50,9 @@ public partial class App : Application
 
     private void OnQuitClicked(object? sender, System.EventArgs e)
     {
+        Overlay?.Close();
+        Overlay = null;
+
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             desktop.Shutdown();

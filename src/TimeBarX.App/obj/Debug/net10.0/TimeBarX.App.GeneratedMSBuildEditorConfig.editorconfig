@@ -26,3 +26,6 @@ build_property.EnableCodeStyleSeverity =
 
 [/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.App/App.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.App/OverlayWindow.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
