@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/TimeBarX.App/TimeBarX.App.csproj" />
+    <Project Path="src/TimeBarX.Core/TimeBarX.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/TimeBarX.Core.Tests/TimeBarX.Core.Tests.csproj" />
+  </Folder>
+</Solution>

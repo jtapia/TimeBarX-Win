@@ -1,0 +1,11 @@
+/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.Core/bin/Debug/net10.0/TimeBarX.Core.deps.json
+/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.Core/bin/Debug/net10.0/TimeBarX.Core.dll
+/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.Core/bin/Debug/net10.0/TimeBarX.Core.pdb
+/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.Core/obj/Debug/net10.0/TimeBarX.Core.GeneratedMSBuildEditorConfig.editorconfig
+/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.Core/obj/Debug/net10.0/TimeBarX.Core.AssemblyInfoInputs.cache
+/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.Core/obj/Debug/net10.0/TimeBarX.Core.AssemblyInfo.cs
+/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.Core/obj/Debug/net10.0/TimeBarX.Core.csproj.CoreCompileInputs.cache
+/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.Core/obj/Debug/net10.0/TimeBarX.Core.dll
+/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.Core/obj/Debug/net10.0/refint/TimeBarX.Core.dll
+/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.Core/obj/Debug/net10.0/TimeBarX.Core.pdb
+/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.Core/obj/Debug/net10.0/ref/TimeBarX.Core.dll
