@@ -13,9 +13,12 @@ public sealed class TrayController : INotifyPropertyChanged
     private readonly TimerEngine _engine = new();
     private readonly DispatcherTimer _ticker;
 
+    // ~30 FPS — smooth enough for a thin progress bar without burning CPU.
+    private static readonly TimeSpan RefreshInterval = TimeSpan.FromMilliseconds(33);
+
     public TrayController()
     {
-        _ticker = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
+        _ticker = new DispatcherTimer { Interval = RefreshInterval };
         _ticker.Tick += (_, _) => RefreshFromEngine();
     }
 
@@ -24,6 +27,10 @@ public sealed class TrayController : INotifyPropertyChanged
     public string TooltipText { get; private set; } = "TimeBarX — idle";
 
     public string StatusLabel { get; private set; } = "No timer running";
+
+    public double Progress => _engine.Progress;
+
+    public bool IsBarVisible => _engine.State is TimerState.Running or TimerState.Paused or TimerState.Completed;
 
     public bool CanStart => _engine.State is TimerState.Idle or TimerState.Completed;
     public bool CanPause => _engine.State == TimerState.Running;
@@ -73,6 +80,8 @@ public sealed class TrayController : INotifyPropertyChanged
 
         Raise(nameof(TooltipText));
         Raise(nameof(StatusLabel));
+        Raise(nameof(Progress));
+        Raise(nameof(IsBarVisible));
         Raise(nameof(CanStart));
         Raise(nameof(CanPause));
         Raise(nameof(CanResume));

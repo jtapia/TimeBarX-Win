@@ -1,7 +1,9 @@
 using System;
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
 
@@ -11,9 +13,14 @@ public partial class OverlayWindow : Window
 {
     private const int BarHeight = 3;
 
+    private Rectangle? _progressBar;
+    private TrayController? _boundController;
+
     public OverlayWindow()
     {
         InitializeComponent();
+        _progressBar = this.FindControl<Rectangle>("ProgressBar");
+        DataContextChanged += OnDataContextChanged;
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
@@ -26,12 +33,49 @@ public partial class OverlayWindow : Window
         Width = bounds.Width / scaling;
         Height = BarHeight;
         Position = new PixelPoint(bounds.X, bounds.Y);
+
+        UpdateProgressBarWidth();
     }
 
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
         ApplyClickThrough();
+        UpdateProgressBarWidth();
+    }
+
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        if (_boundController is not null)
+        {
+            _boundController.PropertyChanged -= OnControllerPropertyChanged;
+        }
+
+        _boundController = DataContext as TrayController;
+
+        if (_boundController is not null)
+        {
+            _boundController.PropertyChanged += OnControllerPropertyChanged;
+        }
+
+        UpdateProgressBarWidth();
+    }
+
+    private void OnControllerPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName is nameof(TrayController.Progress) or nameof(TrayController.IsBarVisible))
+        {
+            UpdateProgressBarWidth();
+        }
+    }
+
+    private void UpdateProgressBarWidth()
+    {
+        if (_progressBar is null) return;
+        var progress = _boundController?.Progress ?? 0.0;
+        if (progress < 0) progress = 0;
+        if (progress > 1) progress = 1;
+        _progressBar.Width = Width * progress;
     }
 
     private void ApplyClickThrough()
