@@ -8,16 +8,26 @@ namespace TimeBarX.App;
 
 public sealed class TrayController : INotifyPropertyChanged
 {
+    private const string DefaultPreset = "25m";
     private static readonly TimeSpan DefaultDuration = TimeSpan.FromMinutes(25);
-
-    private readonly TimerEngine _engine = new();
-    private readonly DispatcherTimer _ticker;
 
     // ~30 FPS — smooth enough for a thin progress bar without burning CPU.
     private static readonly TimeSpan RefreshInterval = TimeSpan.FromMilliseconds(33);
 
+    private readonly TimerEngine _engine = new();
+    private readonly ITimerStore _store;
+    private readonly DispatcherTimer _ticker;
+
+    private string _currentPreset = DefaultPreset;
+
     public TrayController()
+        : this(new JsonTimerStore())
     {
+    }
+
+    public TrayController(ITimerStore store)
+    {
+        _store = store;
         _ticker = new DispatcherTimer { Interval = RefreshInterval };
         _ticker.Tick += (_, _) => RefreshFromEngine();
     }
@@ -25,23 +35,62 @@ public sealed class TrayController : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public string TooltipText { get; private set; } = "TimeBarX — idle";
-
     public string StatusLabel { get; private set; } = "No timer running";
-
     public double Progress => _engine.Progress;
-
     public bool IsBarVisible => _engine.State is TimerState.Running or TimerState.Paused or TimerState.Completed;
-
     public bool CanStart => _engine.State is TimerState.Idle or TimerState.Completed;
     public bool CanPause => _engine.State == TimerState.Running;
     public bool CanResume => _engine.State == TimerState.Paused;
     public bool CanStop => _engine.State is TimerState.Running or TimerState.Paused;
 
+    /// <summary>
+    /// Rehydrates a previously-saved timer from the store. Stale (already-completed)
+    /// state is discarded silently.
+    /// </summary>
+    public void RestoreFromStore()
+    {
+        var snapshot = _store.Load();
+        if (snapshot is null) return;
+
+        if (!string.IsNullOrEmpty(snapshot.Preset)) _currentPreset = snapshot.Preset;
+
+        switch (snapshot.State)
+        {
+            case TimerState.Running when snapshot.EndTime is not null:
+                _engine.StartAt(snapshot.EndTime.Value, snapshot.Total);
+                if (_engine.State == TimerState.Running) _ticker.Start();
+                else _store.Clear();
+                break;
+
+            case TimerState.Paused:
+                _engine.RestorePaused(snapshot.ElapsedAtPause, snapshot.Total);
+                break;
+
+            default:
+                _store.Clear();
+                break;
+        }
+
+        RefreshFromEngine();
+    }
+
+    /// <summary>
+    /// Reconciles the engine clock — call after sleep/wake or whenever real time
+    /// may have jumped beyond what the dispatcher tick has caught up to.
+    /// </summary>
+    public void ReconcileClock()
+    {
+        _engine.Reconcile();
+        RefreshFromEngine();
+    }
+
     public void Start()
     {
         if (!CanStart) return;
+        _currentPreset = DefaultPreset;
         _engine.Start(DefaultDuration);
         _ticker.Start();
+        Persist();
         RefreshFromEngine();
     }
 
@@ -49,6 +98,7 @@ public sealed class TrayController : INotifyPropertyChanged
     {
         if (!CanPause) return;
         _engine.Pause();
+        Persist();
         RefreshFromEngine();
     }
 
@@ -56,6 +106,8 @@ public sealed class TrayController : INotifyPropertyChanged
     {
         if (!CanResume) return;
         _engine.Resume();
+        _ticker.Start();
+        Persist();
         RefreshFromEngine();
     }
 
@@ -63,7 +115,28 @@ public sealed class TrayController : INotifyPropertyChanged
     {
         _engine.Stop();
         _ticker.Stop();
+        _store.Clear();
         RefreshFromEngine();
+    }
+
+    private void Persist()
+    {
+        var snapshot = new TimerSnapshot(
+            State: _engine.State,
+            EndTime: _engine.EndTime,
+            Total: _engine.Total,
+            ElapsedAtPause: _engine.State == TimerState.Paused ? _engine.Elapsed : TimeSpan.Zero,
+            Preset: _currentPreset
+        );
+
+        try
+        {
+            _store.Save(snapshot);
+        }
+        catch
+        {
+            // Persistence is best-effort; never let it crash the UI.
+        }
     }
 
     private void RefreshFromEngine()
@@ -73,6 +146,7 @@ public sealed class TrayController : INotifyPropertyChanged
         if (_engine.State == TimerState.Completed)
         {
             _ticker.Stop();
+            _store.Clear();
         }
 
         TooltipText = BuildTooltip();

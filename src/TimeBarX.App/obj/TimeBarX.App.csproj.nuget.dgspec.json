@@ -70,6 +70,10 @@
             "AvaloniaUI.DiagnosticsSupport": {
               "target": "Package",
               "version": "[2.2.1, )"
+            },
+            "Microsoft.Win32.SystemEvents": {
+              "target": "Package",
+              "version": "[8.0.0, )"
             }
           },
           "imports": [

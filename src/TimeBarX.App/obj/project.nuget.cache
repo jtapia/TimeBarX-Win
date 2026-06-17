@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "wY9DqN3n5r8=",
+  "dgSpecHash": "EwQMQ1YI0DE=",
   "success": true,
   "projectFilePath": "/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.App/TimeBarX.App.csproj",
   "expectedPackageFiles": [
@@ -28,6 +28,7 @@
     "/Users/kaifan11/.nuget/packages/microsoft.extensions.dependencyinjection.abstractions/8.0.0/microsoft.extensions.dependencyinjection.abstractions.8.0.0.nupkg.sha512",
     "/Users/kaifan11/.nuget/packages/microsoft.extensions.logging.abstractions/8.0.0/microsoft.extensions.logging.abstractions.8.0.0.nupkg.sha512",
     "/Users/kaifan11/.nuget/packages/microsoft.io.recyclablememorystream/3.0.1/microsoft.io.recyclablememorystream.3.0.1.nupkg.sha512",
+    "/Users/kaifan11/.nuget/packages/microsoft.win32.systemevents/8.0.0/microsoft.win32.systemevents.8.0.0.nupkg.sha512",
     "/Users/kaifan11/.nuget/packages/skiasharp/3.119.4/skiasharp.3.119.4.nupkg.sha512",
     "/Users/kaifan11/.nuget/packages/skiasharp.nativeassets.linux/3.119.4/skiasharp.nativeassets.linux.3.119.4.nupkg.sha512",
     "/Users/kaifan11/.nuget/packages/skiasharp.nativeassets.macos/3.119.4/skiasharp.nativeassets.macos.3.119.4.nupkg.sha512",

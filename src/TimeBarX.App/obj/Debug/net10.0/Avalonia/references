@@ -32,6 +32,7 @@
 /opt/homebrew/Cellar/dotnet/10.0.301/libexec/packs/Microsoft.NETCore.App.Ref/10.0.9/ref/net10.0/Microsoft.VisualBasic.dll
 /opt/homebrew/Cellar/dotnet/10.0.301/libexec/packs/Microsoft.NETCore.App.Ref/10.0.9/ref/net10.0/Microsoft.Win32.Primitives.dll
 /opt/homebrew/Cellar/dotnet/10.0.301/libexec/packs/Microsoft.NETCore.App.Ref/10.0.9/ref/net10.0/Microsoft.Win32.Registry.dll
+/Users/kaifan11/.nuget/packages/microsoft.win32.systemevents/8.0.0/lib/net8.0/Microsoft.Win32.SystemEvents.dll
 /opt/homebrew/Cellar/dotnet/10.0.301/libexec/packs/Microsoft.NETCore.App.Ref/10.0.9/ref/net10.0/mscorlib.dll
 /opt/homebrew/Cellar/dotnet/10.0.301/libexec/packs/Microsoft.NETCore.App.Ref/10.0.9/ref/net10.0/netstandard.dll
 /Users/kaifan11/.nuget/packages/skiasharp/3.119.4/ref/net10.0/SkiaSharp.dll

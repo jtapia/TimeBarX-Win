@@ -66,6 +66,65 @@ public sealed class TimerEngine
         State = TimerState.Running;
     }
 
+    /// <summary>
+    /// Resumes a running timer that was previously persisted, given its absolute end time
+    /// and original total duration. If <paramref name="endTime"/> is already in the past,
+    /// the engine transitions to Completed.
+    /// </summary>
+    public void StartAt(DateTimeOffset endTime, TimeSpan total)
+    {
+        if (total <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(total), "Total must be positive.");
+
+        _total = total;
+        _pausedAt = null;
+
+        var now = _clock.UtcNow;
+        if (endTime <= now)
+        {
+            _accumulatedElapsed = total;
+            _startedAt = null;
+            State = TimerState.Completed;
+            return;
+        }
+
+        var remaining = endTime - now;
+        if (remaining > total) remaining = total;
+        _accumulatedElapsed = total - remaining;
+        _startedAt = now;
+        State = TimerState.Running;
+    }
+
+    public DateTimeOffset? EndTime => State switch
+    {
+        TimerState.Running => _startedAt!.Value + (_total - _accumulatedElapsed),
+        TimerState.Paused => null,
+        _ => null,
+    };
+
+    /// <summary>
+    /// Rehydrates a paused timer with its captured elapsed and total.
+    /// </summary>
+    public void RestorePaused(TimeSpan elapsed, TimeSpan total)
+    {
+        if (total <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(total), "Total must be positive.");
+        if (elapsed < TimeSpan.Zero) elapsed = TimeSpan.Zero;
+        if (elapsed > total) elapsed = total;
+
+        _total = total;
+        _accumulatedElapsed = elapsed;
+        _startedAt = null;
+        _pausedAt = _clock.UtcNow;
+        State = TimerState.Paused;
+    }
+
+    /// <summary>
+    /// Re-evaluates the running clock — used after sleep/wake or other long gaps
+    /// where Tick may not have fired in time.
+    /// </summary>
+    public void Reconcile() => Tick();
+
     public void Pause()
     {
         if (State != TimerState.Running) return;
