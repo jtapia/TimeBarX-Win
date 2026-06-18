@@ -60,6 +60,7 @@
                                 <NativeMenuItem Header="Toggle Completion Sound" Click="OnSoundToggleClicked" />
                             </NativeMenu>
                         </NativeMenuItem>
+                        <NativeMenuItem Header="Settings…" Click="OnSettingsClicked" />
                         <NativeMenuItemSeparator />
                         <NativeMenuItem Header="Quit" Click="OnQuitClicked" />
                     </NativeMenu>

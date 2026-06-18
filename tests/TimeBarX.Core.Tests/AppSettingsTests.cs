@@ -28,7 +28,7 @@ public class AppSettingsTests : IDisposable
     public void Save_then_load_round_trips()
     {
         var store = new JsonSettingsStore(_path);
-        var settings = new AppSettings(BarColor.Purple, BarHeight.Thick, 0.6, GradientMode: true, PlayCompletionSound: true);
+        var settings = new AppSettings(BarColor.Purple, BarHeight.Thick, 0.6, GradientMode: true, PlayCompletionSound: true, DefaultDuration: TimeSpan.FromMinutes(50));
 
         store.Save(settings);
 

@@ -21,14 +21,16 @@ public sealed record AppSettings(
     BarHeight Height,
     double Opacity,
     bool GradientMode,
-    bool PlayCompletionSound)
+    bool PlayCompletionSound,
+    TimeSpan DefaultDuration)
 {
     public static AppSettings Default => new(
         Color: BarColor.Blue,
         Height: BarHeight.Normal,
         Opacity: 1.0,
         GradientMode: false,
-        PlayCompletionSound: false);
+        PlayCompletionSound: false,
+        DefaultDuration: TimeSpan.FromMinutes(25));
 
     public AppSettings WithOpacity(double opacity)
     {

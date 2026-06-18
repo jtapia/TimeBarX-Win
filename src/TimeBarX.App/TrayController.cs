@@ -115,13 +115,21 @@ public sealed class TrayController : INotifyPropertyChanged
     public void Start()
     {
         if (!CanStart) return;
-        _currentPreset = DefaultPreset;
+        var duration = _settings.DefaultDuration > TimeSpan.Zero ? _settings.DefaultDuration : DefaultDuration;
+        _currentPreset = FormatPreset(duration);
         _currentLabel = null;
-        _engine.Start(DefaultDuration);
+        _engine.Start(duration);
         _ticker.Start();
         _lastState = _engine.State;
         Persist();
         RefreshFromEngine();
+    }
+
+    private static string FormatPreset(TimeSpan d)
+    {
+        if (d.TotalHours >= 1 && d.Minutes == 0 && d.Seconds == 0) return $"{(int)d.TotalHours}h";
+        if (d.TotalMinutes >= 1 && d.Seconds == 0) return $"{(int)d.TotalMinutes}m";
+        return d.ToString();
     }
 
     /// <summary>

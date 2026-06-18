@@ -18,6 +18,7 @@ public partial class App : Application
     private PowerEventBridge? _power;
     private HotkeyService? _hotkey;
     private QuickInputWindow? _quickInput;
+    private SettingsWindow? _settings;
 
     public override void Initialize()
     {
@@ -145,6 +146,19 @@ public partial class App : Application
     private void OnGradientToggleClicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s with { GradientMode = !s.GradientMode });
     private void OnSoundToggleClicked(object? sender, System.EventArgs e)    => Controller.UpdateSettings(s => s with { PlayCompletionSound = !s.PlayCompletionSound });
 
+    private void OnSettingsClicked(object? sender, System.EventArgs e)
+    {
+        if (_settings is not null)
+        {
+            _settings.Activate();
+            return;
+        }
+        var window = new SettingsWindow { DataContext = Controller };
+        _settings = window;
+        window.Closed += (_, _) => _settings = null;
+        window.Show();
+    }
+
     private void OnQuitClicked(object? sender, System.EventArgs e)
     {
         _hotkey?.Dispose();
@@ -155,6 +169,9 @@ public partial class App : Application
 
         _quickInput?.Close();
         _quickInput = null;
+
+        _settings?.Close();
+        _settings = null;
 
         Displays?.Dispose();
         Displays = null;

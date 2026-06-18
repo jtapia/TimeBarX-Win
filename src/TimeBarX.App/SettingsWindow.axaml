@@ -1,0 +1,70 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:TimeBarX.App"
+        x:Class="TimeBarX.App.SettingsWindow"
+        x:DataType="local:TrayController"
+        Title="TimeBarX Settings"
+        WindowStartupLocation="CenterScreen"
+        Width="520" Height="420"
+        CanResize="False">
+    <TabControl Margin="12">
+        <TabItem Header="General">
+            <StackPanel Margin="12" Spacing="14">
+                <TextBlock Text="Default duration" FontWeight="SemiBold" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <RadioButton GroupName="DefaultDuration" Content="15 min" Click="OnDefault15Clicked" />
+                    <RadioButton GroupName="DefaultDuration" Content="25 min" Click="OnDefault25Clicked" />
+                    <RadioButton GroupName="DefaultDuration" Content="50 min" Click="OnDefault50Clicked" />
+                    <RadioButton GroupName="DefaultDuration" Content="90 min" Click="OnDefault90Clicked" />
+                </StackPanel>
+                <Separator />
+                <CheckBox Name="SoundCheck" Content="Play sound when timer completes" Click="OnSoundCheckClicked" />
+            </StackPanel>
+        </TabItem>
+
+        <TabItem Header="Appearance">
+            <StackPanel Margin="12" Spacing="14">
+                <TextBlock Text="Color" FontWeight="SemiBold" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <RadioButton GroupName="Color" Content="Accent" Click="OnColorAccent" />
+                    <RadioButton GroupName="Color" Content="Blue" Click="OnColorBlue" />
+                    <RadioButton GroupName="Color" Content="Purple" Click="OnColorPurple" />
+                    <RadioButton GroupName="Color" Content="Green" Click="OnColorGreen" />
+                    <RadioButton GroupName="Color" Content="Red" Click="OnColorRed" />
+                </StackPanel>
+                <Separator />
+                <TextBlock Text="Height" FontWeight="SemiBold" />
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <RadioButton GroupName="Height" Content="2 px" Click="OnHeight2" />
+                    <RadioButton GroupName="Height" Content="3 px" Click="OnHeight3" />
+                    <RadioButton GroupName="Height" Content="4 px" Click="OnHeight4" />
+                </StackPanel>
+                <Separator />
+                <TextBlock Text="Opacity" FontWeight="SemiBold" />
+                <Slider Name="OpacitySlider" Minimum="0.1" Maximum="1.0" TickFrequency="0.1"
+                        IsSnapToTickEnabled="True"
+                        ValueChanged="OnOpacityChanged" />
+                <CheckBox Name="GradientCheck" Content="Gradient mode (green → red)" Click="OnGradientClicked" />
+            </StackPanel>
+        </TabItem>
+
+        <TabItem Header="Shortcuts">
+            <StackPanel Margin="12" Spacing="10">
+                <TextBlock Text="Quick timer input" FontWeight="SemiBold" />
+                <TextBlock Text="Ctrl + Shift + T" FontFamily="Cascadia Mono,Consolas,monospace" />
+                <Separator />
+                <TextBlock Text="Automation" FontWeight="SemiBold" />
+                <TextBlock TextWrapping="Wrap"
+                           Text="TimeBarX accepts timebarx:// URIs. See INTEGRATIONS.md for PowerToys, Flow Launcher, and AutoHotkey examples." />
+            </StackPanel>
+        </TabItem>
+
+        <TabItem Header="About">
+            <StackPanel Margin="12" Spacing="6" HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="TimeBarX" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center" />
+                <TextBlock Text="A timer that lives on the edge of your screen." HorizontalAlignment="Center" />
+                <TextBlock Name="VersionText" HorizontalAlignment="Center" Foreground="#9CA3AF" />
+            </StackPanel>
+        </TabItem>
+    </TabControl>
+</Window>
