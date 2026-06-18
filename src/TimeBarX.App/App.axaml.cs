@@ -1,8 +1,11 @@
+using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
+using TimeBarX.Core;
 
 namespace TimeBarX.App;
 
@@ -41,9 +44,45 @@ public partial class App : Application
             _hotkey = new HotkeyService();
             _hotkey.Pressed += OnHotkeyPressed;
             _hotkey.Start();
+
+            // Forwarded URIs from secondary instances.
+            if (Program.Instance is { } singleton)
+            {
+                singleton.MessageReceived += OnSingletonMessage;
+            }
+
+            // URI from this process's own startup args.
+            var startupUri = desktop.Args?.FirstOrDefault(a => a.StartsWith("timebarx://", StringComparison.OrdinalIgnoreCase));
+            if (startupUri is not null) HandleUri(startupUri);
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private void OnSingletonMessage(string message)
+    {
+        Dispatcher.UIThread.Post(() => HandleUri(message));
+    }
+
+    private void HandleUri(string uri)
+    {
+        if (!UriCommand.TryParse(uri, out var cmd)) return;
+        switch (cmd.Kind)
+        {
+            case UriCommandKind.Start:
+                if (cmd.Duration is { } d)
+                    Controller.StartCustom(d, cmd.Preset ?? string.Empty, cmd.Label);
+                break;
+            case UriCommandKind.Pause:
+                Controller.Pause();
+                break;
+            case UriCommandKind.Resume:
+                Controller.Resume();
+                break;
+            case UriCommandKind.Stop:
+                Controller.Stop();
+                break;
+        }
     }
 
     private void OnSystemResume()
