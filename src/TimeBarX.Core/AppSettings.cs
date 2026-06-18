@@ -11,9 +11,9 @@ public enum BarColor
 
 public enum BarHeight
 {
-    Thin = 5,
-    Normal = 7,
-    Thick = 10,
+    Thin = 8,
+    Normal = 10,
+    Thick = 13,
 }
 
 public sealed record AppSettings(

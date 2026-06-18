@@ -12,6 +12,7 @@
     <TrayIcon.Icons>
         <TrayIcons>
             <TrayIcon ToolTipText="{Binding TooltipText}"
+                      Icon="/Assets/icon.ico"
                       IsVisible="True">
                 <TrayIcon.Menu>
                     <NativeMenu>
