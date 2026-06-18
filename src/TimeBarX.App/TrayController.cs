@@ -24,6 +24,12 @@ public sealed class TrayController : INotifyPropertyChanged
     private TimerState _lastState = TimerState.Idle;
     private AppSettings _settings;
 
+    // Last values pushed to the UI, so the 30 FPS refresh only raises
+    // PropertyChanged when something actually changed (see RefreshFromEngine).
+    private string? _lastTooltip;
+    private string? _lastStatusLabel;
+    private double _lastProgress = double.NaN;
+
     /// <summary>Raised once when the timer transitions into Completed.</summary>
     public event Action? Completed;
 
@@ -132,7 +138,6 @@ public sealed class TrayController : INotifyPropertyChanged
         _currentLabel = null;
         _engine.Start(duration);
         _ticker.Start();
-        _lastState = _engine.State;
         Persist();
         RefreshFromEngine();
     }
@@ -156,7 +161,6 @@ public sealed class TrayController : INotifyPropertyChanged
         _currentLabel = string.IsNullOrWhiteSpace(label) ? null : label.Trim();
         _engine.Start(duration);
         _ticker.Start();
-        _lastState = _engine.State;
         Persist();
         RefreshFromEngine();
     }
@@ -174,7 +178,6 @@ public sealed class TrayController : INotifyPropertyChanged
         if (!CanResume) return;
         _engine.Resume();
         _ticker.Start();
-        _lastState = _engine.State;
         Persist();
         RefreshFromEngine();
     }
@@ -215,6 +218,7 @@ public sealed class TrayController : INotifyPropertyChanged
 
         var current = _engine.State;
         var justCompleted = current == TimerState.Completed && _lastState != TimerState.Completed;
+        var stateChanged = current != _lastState;
         _lastState = current;
 
         if (current == TimerState.Completed)
@@ -226,14 +230,41 @@ public sealed class TrayController : INotifyPropertyChanged
         TooltipText = BuildTooltip();
         StatusLabel = BuildStatusLabel();
 
-        Raise(nameof(TooltipText));
-        Raise(nameof(StatusLabel));
-        Raise(nameof(Progress));
-        Raise(nameof(IsBarVisible));
-        Raise(nameof(CanStart));
-        Raise(nameof(CanPause));
-        Raise(nameof(CanResume));
-        Raise(nameof(CanStop));
+        // The refresh loop ticks ~30x/sec; only raise PropertyChanged for values
+        // that actually changed so views don't re-layout/re-brush every frame.
+        if (TooltipText != _lastTooltip)
+        {
+            _lastTooltip = TooltipText;
+            Raise(nameof(TooltipText));
+        }
+
+        if (StatusLabel != _lastStatusLabel)
+        {
+            _lastStatusLabel = StatusLabel;
+            Raise(nameof(StatusLabel));
+        }
+
+        // On a state transition, force Progress to re-push this frame: a
+        // Stop→Start could land on a Progress value equal to the stale cache and
+        // skip the raise below, leaving the bar stuck.
+        if (stateChanged) _lastProgress = double.NaN;
+
+        var progress = Progress;
+        if (progress != _lastProgress)
+        {
+            _lastProgress = progress;
+            Raise(nameof(Progress));
+        }
+
+        // The command-availability flags only change on a state transition.
+        if (stateChanged)
+        {
+            Raise(nameof(IsBarVisible));
+            Raise(nameof(CanStart));
+            Raise(nameof(CanPause));
+            Raise(nameof(CanResume));
+            Raise(nameof(CanStop));
+        }
 
         if (justCompleted)
         {

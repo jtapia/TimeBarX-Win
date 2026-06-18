@@ -22,6 +22,11 @@ public partial class OverlayWindow : Window
     private OverlayPolicy? _policy;
     private Screen? _screen;
 
+    // Cache the last bar color so the ~30 FPS refresh reuses the same brush
+    // instead of allocating a new SolidColorBrush every frame.
+    private Rgb? _lastBarRgb;
+    private SolidColorBrush? _barBrush;
+
     public OverlayWindow()
     {
         InitializeComponent();
@@ -110,7 +115,12 @@ public partial class OverlayWindow : Window
         if (_progressBar is null || _boundController is null) return;
         if (_animator is { IsActive: true }) return; // animator owns the brush mid-sequence
         var rgb = BarColorPalette.ForProgress(_boundController.Settings, _boundController.Progress);
-        _progressBar.Fill = ToBrush(rgb);
+        if (_barBrush is null || _lastBarRgb != rgb)
+        {
+            _barBrush = ToBrush(rgb);
+            _lastBarRgb = rgb;
+        }
+        _progressBar.Fill = _barBrush;
     }
 
     private static SolidColorBrush ToBrush(Rgb rgb) => new(Color.FromRgb(rgb.R, rgb.G, rgb.B));

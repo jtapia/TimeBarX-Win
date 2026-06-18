@@ -32,12 +32,29 @@ public sealed class OverlayPolicy : IDisposable
         _controller = controller;
         _timer = new DispatcherTimer { Interval = Cadence };
         _timer.Tick += (_, _) => Tick();
-        _timer.Start();
+
+        // The policy only has work to do while a timer is active (the bar is
+        // visible). Poll just then — otherwise we'd call GetForegroundWindow +
+        // Process.GetProcessById once/sec/monitor forever, even when idle.
+        _controller.PropertyChanged += OnControllerPropertyChanged;
+        SyncTimerToVisibility();
     }
 
     public void Dispose()
     {
+        _controller.PropertyChanged -= OnControllerPropertyChanged;
         _timer.Stop();
+    }
+
+    private void OnControllerPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TrayController.IsBarVisible)) SyncTimerToVisibility();
+    }
+
+    private void SyncTimerToVisibility()
+    {
+        if (_controller.IsBarVisible) _timer.Start();
+        else _timer.Stop();
     }
 
     private void Tick()
