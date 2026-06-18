@@ -60,7 +60,12 @@ public sealed class OverlayPolicy : IDisposable
         // Default behavior (PLAN.md Mode 1): hide for known full-screen / video apps.
         // Experimental mode (PLAN.md Mode 2): also push above everything else when possible.
         var shouldHide = hideForProcess || (!settings.AlwaysAboveEverything && foregroundIsFullscreen);
-        _overlay.IsVisible = !shouldHide;
+
+        // Only toggle when the value actually changes — assigning IsVisible every
+        // tick re-runs Avalonia's Show() path on Windows, which churns the Z-order
+        // and (on Win11) interferes with other apps' minimize/close caption buttons.
+        var wantVisible = !shouldHide;
+        if (_overlay.IsVisible != wantVisible) _overlay.IsVisible = wantVisible;
 
         if (settings.AlwaysAboveEverything && !shouldHide && !foregroundIsFullscreen)
         {
