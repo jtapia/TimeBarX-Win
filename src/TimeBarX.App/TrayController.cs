@@ -94,6 +94,21 @@ public sealed class TrayController : INotifyPropertyChanged
         RefreshFromEngine();
     }
 
+    /// <summary>
+    /// Start a timer with a custom duration (e.g. from the quick input window).
+    /// Replaces any active timer.
+    /// </summary>
+    public void StartCustom(TimeSpan duration, string preset)
+    {
+        if (duration <= TimeSpan.Zero) return;
+        _engine.Stop();
+        _currentPreset = string.IsNullOrEmpty(preset) ? DefaultPreset : preset;
+        _engine.Start(duration);
+        _ticker.Start();
+        Persist();
+        RefreshFromEngine();
+    }
+
     public void Pause()
     {
         if (!CanPause) return;

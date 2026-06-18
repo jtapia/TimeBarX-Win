@@ -13,6 +13,8 @@ public partial class App : Application
     public DisplayManager? Displays { get; private set; }
 
     private PowerEventBridge? _power;
+    private HotkeyService? _hotkey;
+    private QuickInputWindow? _quickInput;
 
     public override void Initialize()
     {
@@ -34,6 +36,10 @@ public partial class App : Application
 
             _power = new PowerEventBridge(OnSystemResume);
             _power.Attach();
+
+            _hotkey = new HotkeyService();
+            _hotkey.Pressed += OnHotkeyPressed;
+            _hotkey.Start();
         }
 
         base.OnFrameworkInitializationCompleted();
@@ -45,6 +51,32 @@ public partial class App : Application
         Dispatcher.UIThread.Post(() => Controller.ReconcileClock());
     }
 
+    private void OnHotkeyPressed()
+    {
+        Dispatcher.UIThread.Post(ShowQuickInput);
+    }
+
+    private void ShowQuickInput()
+    {
+        if (_quickInput is not null)
+        {
+            _quickInput.Activate();
+            return;
+        }
+
+        var window = new QuickInputWindow();
+        _quickInput = window;
+        window.Closed += (_, _) =>
+        {
+            if (window.Result is { } parsed)
+            {
+                Controller.StartCustom(parsed.Duration, parsed.Preset);
+            }
+            _quickInput = null;
+        };
+        window.Show();
+    }
+
     private void OnStartClicked(object? sender, System.EventArgs e) => Controller.Start();
     private void OnPauseClicked(object? sender, System.EventArgs e) => Controller.Pause();
     private void OnResumeClicked(object? sender, System.EventArgs e) => Controller.Resume();
@@ -52,8 +84,14 @@ public partial class App : Application
 
     private void OnQuitClicked(object? sender, System.EventArgs e)
     {
+        _hotkey?.Dispose();
+        _hotkey = null;
+
         _power?.Dispose();
         _power = null;
+
+        _quickInput?.Close();
+        _quickInput = null;
 
         Displays?.Dispose();
         Displays = null;

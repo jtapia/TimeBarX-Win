@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("TimeBarX.App")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+348b251171d39186cbc089f2c3cf3b5c6e8a7e0b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+ee5d95a968338a4d5a525e111c308232c2f605e4")]
 [assembly: System.Reflection.AssemblyProductAttribute("TimeBarX.App")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TimeBarX.App")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

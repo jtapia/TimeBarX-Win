@@ -29,3 +29,6 @@ build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
 [/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.App/OverlayWindow.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.App/QuickInputWindow.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
