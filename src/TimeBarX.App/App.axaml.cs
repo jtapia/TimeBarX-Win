@@ -52,6 +52,8 @@ public partial class App : Application
                 singleton.MessageReceived += OnSingletonMessage;
             }
 
+            _ = CheckForUpdatesAsync();
+
             // URI from this process's own startup args.
             var startupUri = desktop.Args?.FirstOrDefault(a => a.StartsWith("timebarx://", StringComparison.OrdinalIgnoreCase));
             if (startupUri is not null) HandleUri(startupUri);
@@ -63,6 +65,19 @@ public partial class App : Application
     private void OnSingletonMessage(string message)
     {
         Dispatcher.UIThread.Post(() => HandleUri(message));
+    }
+
+    private async System.Threading.Tasks.Task CheckForUpdatesAsync()
+    {
+        var url = Environment.GetEnvironmentVariable("TIMEBARX_UPDATE_URL");
+        if (string.IsNullOrWhiteSpace(url)) return;
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var endpoint)) return;
+
+        var current = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "0.0.0";
+        var checker = new UpdateChecker(endpoint);
+        var info = await checker.CheckAsync(current).ConfigureAwait(false);
+        if (info is null) return;
+        Dispatcher.UIThread.Post(() => Controller.AvailableUpdate = info);
     }
 
     private void HandleUri(string uri)

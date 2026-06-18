@@ -17,6 +17,7 @@ public partial class SettingsWindow : Window
     private Control? _alwaysAboveWarning;
     private Slider? _opacitySlider;
     private TextBlock? _versionText;
+    private TextBlock? _updateText;
 
     public SettingsWindow()
     {
@@ -27,6 +28,7 @@ public partial class SettingsWindow : Window
         _alwaysAboveWarning = this.FindControl<Control>("AlwaysAboveWarning");
         _opacitySlider = this.FindControl<Slider>("OpacitySlider");
         _versionText = this.FindControl<TextBlock>("VersionText");
+        _updateText = this.FindControl<TextBlock>("UpdateText");
 
         if (_versionText is not null)
         {
@@ -41,10 +43,37 @@ public partial class SettingsWindow : Window
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        if (_controller is not null) _controller.SettingsChanged -= SyncFromSettings;
+        if (_controller is not null)
+        {
+            _controller.SettingsChanged -= SyncFromSettings;
+            _controller.PropertyChanged -= OnControllerPropertyChanged;
+        }
         _controller = DataContext as TrayController;
-        if (_controller is not null) _controller.SettingsChanged += SyncFromSettings;
+        if (_controller is not null)
+        {
+            _controller.SettingsChanged += SyncFromSettings;
+            _controller.PropertyChanged += OnControllerPropertyChanged;
+        }
         SyncFromSettings();
+        SyncUpdate();
+    }
+
+    private void OnControllerPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TrayController.AvailableUpdate)) SyncUpdate();
+    }
+
+    private void SyncUpdate()
+    {
+        if (_updateText is null) return;
+        var update = _controller?.AvailableUpdate;
+        if (update is null)
+        {
+            _updateText.IsVisible = false;
+            return;
+        }
+        _updateText.Text = $"Update available: {update.LatestVersion}";
+        _updateText.IsVisible = true;
     }
 
     private void SyncFromSettings()

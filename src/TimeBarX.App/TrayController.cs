@@ -32,6 +32,18 @@ public sealed class TrayController : INotifyPropertyChanged
 
     public AppSettings Settings => _settings;
 
+    private UpdateInfo? _availableUpdate;
+    public UpdateInfo? AvailableUpdate
+    {
+        get => _availableUpdate;
+        set
+        {
+            if (_availableUpdate == value) return;
+            _availableUpdate = value;
+            Raise(nameof(AvailableUpdate));
+        }
+    }
+
     /// <summary>If true, play a short sound on completion. Default off per PLAN.md.</summary>
     public bool PlayCompletionSound => _settings.PlayCompletionSound;
 

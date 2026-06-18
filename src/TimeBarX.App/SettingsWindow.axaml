@@ -79,6 +79,10 @@
                 <TextBlock Text="TimeBarX" FontSize="24" FontWeight="SemiBold" HorizontalAlignment="Center" />
                 <TextBlock Text="A timer that lives on the edge of your screen." HorizontalAlignment="Center" />
                 <TextBlock Name="VersionText" HorizontalAlignment="Center" Foreground="#9CA3AF" />
+                <TextBlock Name="UpdateText"
+                           HorizontalAlignment="Center"
+                           Foreground="#10B981"
+                           IsVisible="False" />
             </StackPanel>
         </TabItem>
     </TabControl>

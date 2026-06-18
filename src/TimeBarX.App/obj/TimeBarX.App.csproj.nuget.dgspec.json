@@ -5,7 +5,7 @@
   },
   "projects": {
     "/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.App/TimeBarX.App.csproj": {
-      "version": "1.0.0",
+      "version": "0.1.0",
       "restore": {
         "projectUniqueName": "/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.App/TimeBarX.App.csproj",
         "projectName": "TimeBarX.App",
