@@ -31,8 +31,41 @@ public static class DurationParser
 
         if (TryParseColon(trimmed, out result)) return true;
         if (TryParseUnits(trimmed, out result)) return true;
+        if (TryParsePhrase(trimmed, out result)) return true;
 
         return false;
+    }
+
+    // Phrase forms: "half hour" / "quarter hour" / "an hour" / "a minute" — with optional trailing label.
+    private static readonly Regex PhraseForm = new(
+        @"^(?<q>half|quarter|an?)\s+(?<u>hour|minute)s?\b",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static bool TryParsePhrase(string input, out ParsedDuration result)
+    {
+        result = default!;
+        var m = PhraseForm.Match(input);
+        if (!m.Success) return false;
+
+        var q = m.Groups["q"].Value.ToLowerInvariant();
+        var u = m.Groups["u"].Value.ToLowerInvariant();
+        var unit = u[0] == 'h' ? TimeSpan.FromHours(1) : TimeSpan.FromMinutes(1);
+        TimeSpan duration = q switch
+        {
+            "half" => unit == TimeSpan.FromHours(1) ? TimeSpan.FromMinutes(30) : TimeSpan.FromSeconds(30),
+            "quarter" => unit == TimeSpan.FromHours(1) ? TimeSpan.FromMinutes(15) : TimeSpan.FromSeconds(15),
+            _ => unit, // "a" / "an"
+        };
+
+        if (duration <= TimeSpan.Zero) return false;
+
+        var preset = duration.TotalHours >= 1
+            ? $"{(int)duration.TotalHours}h"
+            : $"{(int)duration.TotalMinutes}m";
+
+        var label = ExtractTrailingLabel(input, m.Length);
+        result = new ParsedDuration(duration, label, preset);
+        return true;
     }
 
     private static bool TryParseColon(string input, out ParsedDuration result)

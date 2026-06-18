@@ -5,5 +5,6 @@ public sealed record TimerSnapshot(
     DateTimeOffset? EndTime,
     TimeSpan Total,
     TimeSpan ElapsedAtPause,
-    string? Preset
+    string? Preset,
+    string? Label = null
 );

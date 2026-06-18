@@ -76,7 +76,7 @@ public partial class App : Application
         {
             if (window.Result is { } parsed)
             {
-                Controller.StartCustom(parsed.Duration, parsed.Preset);
+                Controller.StartCustom(parsed.Duration, parsed.Preset, parsed.Label);
             }
             _quickInput = null;
         };

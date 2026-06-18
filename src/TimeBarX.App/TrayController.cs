@@ -20,6 +20,7 @@ public sealed class TrayController : INotifyPropertyChanged
     private readonly DispatcherTimer _ticker;
 
     private string _currentPreset = DefaultPreset;
+    private string? _currentLabel;
     private TimerState _lastState = TimerState.Idle;
     private AppSettings _settings;
 
@@ -79,6 +80,7 @@ public sealed class TrayController : INotifyPropertyChanged
         if (snapshot is null) return;
 
         if (!string.IsNullOrEmpty(snapshot.Preset)) _currentPreset = snapshot.Preset;
+        _currentLabel = string.IsNullOrWhiteSpace(snapshot.Label) ? null : snapshot.Label;
 
         switch (snapshot.State)
         {
@@ -114,6 +116,7 @@ public sealed class TrayController : INotifyPropertyChanged
     {
         if (!CanStart) return;
         _currentPreset = DefaultPreset;
+        _currentLabel = null;
         _engine.Start(DefaultDuration);
         _ticker.Start();
         _lastState = _engine.State;
@@ -123,13 +126,14 @@ public sealed class TrayController : INotifyPropertyChanged
 
     /// <summary>
     /// Start a timer with a custom duration (e.g. from the quick input window).
-    /// Replaces any active timer.
+    /// Replaces any active timer. <paramref name="label"/> is shown in the tray UI.
     /// </summary>
-    public void StartCustom(TimeSpan duration, string preset)
+    public void StartCustom(TimeSpan duration, string preset, string? label = null)
     {
         if (duration <= TimeSpan.Zero) return;
         _engine.Stop();
         _currentPreset = string.IsNullOrEmpty(preset) ? DefaultPreset : preset;
+        _currentLabel = string.IsNullOrWhiteSpace(label) ? null : label.Trim();
         _engine.Start(duration);
         _ticker.Start();
         _lastState = _engine.State;
@@ -160,6 +164,7 @@ public sealed class TrayController : INotifyPropertyChanged
         _engine.Stop();
         _ticker.Stop();
         _store.Clear();
+        _currentLabel = null;
         RefreshFromEngine();
     }
 
@@ -170,7 +175,8 @@ public sealed class TrayController : INotifyPropertyChanged
             EndTime: _engine.EndTime,
             Total: _engine.Total,
             ElapsedAtPause: _engine.State == TimerState.Paused ? _engine.Elapsed : TimeSpan.Zero,
-            Preset: _currentPreset
+            Preset: _currentPreset,
+            Label: _currentLabel
         );
 
         try
@@ -215,23 +221,31 @@ public sealed class TrayController : INotifyPropertyChanged
         }
     }
 
-    private string BuildTooltip() => _engine.State switch
+    private string BuildTooltip()
     {
-        TimerState.Idle => "TimeBarX — idle",
-        TimerState.Running => $"TimeBarX — {Format(_engine.Remaining)} remaining",
-        TimerState.Paused => $"TimeBarX — paused at {Format(_engine.Remaining)}",
-        TimerState.Completed => "TimeBarX — done",
-        _ => "TimeBarX",
-    };
+        var suffix = _currentLabel is null ? string.Empty : $" · {_currentLabel}";
+        return _engine.State switch
+        {
+            TimerState.Idle => "TimeBarX — idle",
+            TimerState.Running => $"TimeBarX — {Format(_engine.Remaining)} remaining{suffix}",
+            TimerState.Paused => $"TimeBarX — paused at {Format(_engine.Remaining)}{suffix}",
+            TimerState.Completed => _currentLabel is null ? "TimeBarX — done" : $"TimeBarX — {_currentLabel} done",
+            _ => "TimeBarX",
+        };
+    }
 
-    private string BuildStatusLabel() => _engine.State switch
+    private string BuildStatusLabel()
     {
-        TimerState.Idle => "No timer running",
-        TimerState.Running => $"{Format(_engine.Remaining)} remaining",
-        TimerState.Paused => $"Paused — {Format(_engine.Remaining)} left",
-        TimerState.Completed => "Timer complete",
-        _ => "",
-    };
+        var suffix = _currentLabel is null ? string.Empty : $" · {_currentLabel}";
+        return _engine.State switch
+        {
+            TimerState.Idle => "No timer running",
+            TimerState.Running => $"{Format(_engine.Remaining)} remaining{suffix}",
+            TimerState.Paused => $"Paused — {Format(_engine.Remaining)} left{suffix}",
+            TimerState.Completed => _currentLabel is null ? "Timer complete" : $"{_currentLabel} complete",
+            _ => "",
+        };
+    }
 
     private static string Format(TimeSpan t)
     {

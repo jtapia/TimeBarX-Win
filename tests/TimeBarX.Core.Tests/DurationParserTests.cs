@@ -69,4 +69,23 @@ public class DurationParserTests
         DurationParser.TryParse("1:30", out var parsed);
         Assert.Equal("1:30", parsed.Preset);
     }
+
+    [Theory]
+    [InlineData("half hour", 30)]
+    [InlineData("quarter hour", 15)]
+    [InlineData("an hour", 60)]
+    [InlineData("a minute", 1)]
+    public void Parses_phrase_form(string input, int totalMinutes)
+    {
+        Assert.True(DurationParser.TryParse(input, out var parsed));
+        Assert.Equal(TimeSpan.FromMinutes(totalMinutes), parsed.Duration);
+    }
+
+    [Fact]
+    public void Phrase_form_captures_trailing_label()
+    {
+        Assert.True(DurationParser.TryParse("half hour standup", out var parsed));
+        Assert.Equal(TimeSpan.FromMinutes(30), parsed.Duration);
+        Assert.Equal("standup", parsed.Label);
+    }
 }
