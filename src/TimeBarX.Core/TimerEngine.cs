@@ -7,7 +7,6 @@ public sealed class TimerEngine
     private DateTimeOffset? _startedAt;
     private TimeSpan _total;
     private TimeSpan _accumulatedElapsed;
-    private DateTimeOffset? _pausedAt;
 
     public TimerEngine(IClock? clock = null)
     {
@@ -61,7 +60,6 @@ public sealed class TimerEngine
 
         _total = duration;
         _accumulatedElapsed = TimeSpan.Zero;
-        _pausedAt = null;
         _startedAt = _clock.UtcNow;
         State = TimerState.Running;
     }
@@ -77,7 +75,6 @@ public sealed class TimerEngine
             throw new ArgumentOutOfRangeException(nameof(total), "Total must be positive.");
 
         _total = total;
-        _pausedAt = null;
 
         var now = _clock.UtcNow;
         if (endTime <= now)
@@ -115,7 +112,6 @@ public sealed class TimerEngine
         _total = total;
         _accumulatedElapsed = elapsed;
         _startedAt = null;
-        _pausedAt = _clock.UtcNow;
         State = TimerState.Paused;
     }
 
@@ -130,7 +126,6 @@ public sealed class TimerEngine
         if (State != TimerState.Running) return;
 
         _accumulatedElapsed += _clock.UtcNow - _startedAt!.Value;
-        _pausedAt = _clock.UtcNow;
         _startedAt = null;
         State = TimerState.Paused;
     }
@@ -140,14 +135,12 @@ public sealed class TimerEngine
         if (State != TimerState.Paused) return;
 
         _startedAt = _clock.UtcNow;
-        _pausedAt = null;
         State = TimerState.Running;
     }
 
     public void Stop()
     {
         _startedAt = null;
-        _pausedAt = null;
         _accumulatedElapsed = TimeSpan.Zero;
         _total = TimeSpan.Zero;
         State = TimerState.Idle;

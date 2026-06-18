@@ -241,9 +241,11 @@ public sealed class TrayController : INotifyPropertyChanged
         }
     }
 
+    private string LabelSuffix => _currentLabel is null ? string.Empty : $" · {_currentLabel}";
+
     private string BuildTooltip()
     {
-        var suffix = _currentLabel is null ? string.Empty : $" · {_currentLabel}";
+        var suffix = LabelSuffix;
         return _engine.State switch
         {
             TimerState.Idle => "TimeBarX — idle",
@@ -256,7 +258,7 @@ public sealed class TrayController : INotifyPropertyChanged
 
     private string BuildStatusLabel()
     {
-        var suffix = _currentLabel is null ? string.Empty : $" · {_currentLabel}";
+        var suffix = LabelSuffix;
         return _engine.State switch
         {
             TimerState.Idle => "No timer running",

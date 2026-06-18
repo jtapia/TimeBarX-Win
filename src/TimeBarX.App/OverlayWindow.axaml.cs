@@ -110,8 +110,10 @@ public partial class OverlayWindow : Window
         if (_progressBar is null || _boundController is null) return;
         if (_animator is { IsActive: true }) return; // animator owns the brush mid-sequence
         var rgb = BarColorPalette.ForProgress(_boundController.Settings, _boundController.Progress);
-        _progressBar.Fill = new SolidColorBrush(Color.FromRgb(rgb.R, rgb.G, rgb.B));
+        _progressBar.Fill = ToBrush(rgb);
     }
+
+    private static SolidColorBrush ToBrush(Rgb rgb) => new(Color.FromRgb(rgb.R, rgb.G, rgb.B));
 
     private void OnControllerPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
@@ -136,8 +138,7 @@ public partial class OverlayWindow : Window
     {
         if (_progressBar is null || _boundController is null) return;
         _animator?.Cancel();
-        var rgb = BarColorPalette.ForProgress(_boundController.Settings, 1.0);
-        var resting = new SolidColorBrush(Color.FromRgb(rgb.R, rgb.G, rgb.B));
+        var resting = ToBrush(BarColorPalette.ForProgress(_boundController.Settings, 1.0));
         _animator = new CompletionAnimator(this, _progressBar, resting, FlashBrush, _boundController.Settings.Opacity);
         _animator.Run();
     }

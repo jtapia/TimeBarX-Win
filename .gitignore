@@ -1,0 +1,16 @@
+# Build output
+bin/
+obj/
+artifacts/
+
+# Generated icons (regenerated from assets/icon.svg)
+assets/icon.ico
+
+# IDE / editor
+.vs/
+.idea/
+*.user
+
+# OS cruft
+.DS_Store
+Thumbs.db
