@@ -74,6 +74,10 @@
             "Microsoft.Win32.SystemEvents": {
               "target": "Package",
               "version": "[8.0.0, )"
+            },
+            "System.Windows.Extensions": {
+              "target": "Package",
+              "version": "[8.0.0, )"
             }
           },
           "imports": [

@@ -19,6 +19,13 @@ public sealed class TrayController : INotifyPropertyChanged
     private readonly DispatcherTimer _ticker;
 
     private string _currentPreset = DefaultPreset;
+    private TimerState _lastState = TimerState.Idle;
+
+    /// <summary>Raised once when the timer transitions into Completed.</summary>
+    public event Action? Completed;
+
+    /// <summary>If true, play a short sound on completion. Default off per PLAN.md.</summary>
+    public bool PlayCompletionSound { get; set; }
 
     public TrayController()
         : this(new JsonTimerStore())
@@ -90,6 +97,7 @@ public sealed class TrayController : INotifyPropertyChanged
         _currentPreset = DefaultPreset;
         _engine.Start(DefaultDuration);
         _ticker.Start();
+        _lastState = _engine.State;
         Persist();
         RefreshFromEngine();
     }
@@ -105,6 +113,7 @@ public sealed class TrayController : INotifyPropertyChanged
         _currentPreset = string.IsNullOrEmpty(preset) ? DefaultPreset : preset;
         _engine.Start(duration);
         _ticker.Start();
+        _lastState = _engine.State;
         Persist();
         RefreshFromEngine();
     }
@@ -122,6 +131,7 @@ public sealed class TrayController : INotifyPropertyChanged
         if (!CanResume) return;
         _engine.Resume();
         _ticker.Start();
+        _lastState = _engine.State;
         Persist();
         RefreshFromEngine();
     }
@@ -158,7 +168,11 @@ public sealed class TrayController : INotifyPropertyChanged
     {
         _engine.Tick();
 
-        if (_engine.State == TimerState.Completed)
+        var current = _engine.State;
+        var justCompleted = current == TimerState.Completed && _lastState != TimerState.Completed;
+        _lastState = current;
+
+        if (current == TimerState.Completed)
         {
             _ticker.Stop();
             _store.Clear();
@@ -175,6 +189,11 @@ public sealed class TrayController : INotifyPropertyChanged
         Raise(nameof(CanPause));
         Raise(nameof(CanResume));
         Raise(nameof(CanStop));
+
+        if (justCompleted)
+        {
+            Completed?.Invoke();
+        }
     }
 
     private string BuildTooltip() => _engine.State switch

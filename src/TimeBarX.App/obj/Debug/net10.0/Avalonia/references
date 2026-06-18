@@ -186,6 +186,7 @@
 /opt/homebrew/Cellar/dotnet/10.0.301/libexec/packs/Microsoft.NETCore.App.Ref/10.0.9/ref/net10.0/System.Web.dll
 /opt/homebrew/Cellar/dotnet/10.0.301/libexec/packs/Microsoft.NETCore.App.Ref/10.0.9/ref/net10.0/System.Web.HttpUtility.dll
 /opt/homebrew/Cellar/dotnet/10.0.301/libexec/packs/Microsoft.NETCore.App.Ref/10.0.9/ref/net10.0/System.Windows.dll
+/Users/kaifan11/.nuget/packages/system.windows.extensions/8.0.0/lib/net8.0/System.Windows.Extensions.dll
 /opt/homebrew/Cellar/dotnet/10.0.301/libexec/packs/Microsoft.NETCore.App.Ref/10.0.9/ref/net10.0/System.Xml.dll
 /opt/homebrew/Cellar/dotnet/10.0.301/libexec/packs/Microsoft.NETCore.App.Ref/10.0.9/ref/net10.0/System.Xml.Linq.dll
 /opt/homebrew/Cellar/dotnet/10.0.301/libexec/packs/Microsoft.NETCore.App.Ref/10.0.9/ref/net10.0/System.Xml.ReaderWriter.dll

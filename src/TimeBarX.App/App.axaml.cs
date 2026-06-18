@@ -24,6 +24,7 @@ public partial class App : Application
     public override void OnFrameworkInitializationCompleted()
     {
         DataContext = Controller;
+        Controller.Completed += OnTimerCompleted;
 
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -49,6 +50,11 @@ public partial class App : Application
     {
         // SystemEvents fires on a non-UI thread; marshal back.
         Dispatcher.UIThread.Post(() => Controller.ReconcileClock());
+    }
+
+    private void OnTimerCompleted()
+    {
+        if (Controller.PlayCompletionSound) CompletionSound.Play();
     }
 
     private void OnHotkeyPressed()

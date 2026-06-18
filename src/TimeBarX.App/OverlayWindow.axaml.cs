@@ -5,7 +5,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using Avalonia.Platform;
+using Avalonia.Threading;
 
 namespace TimeBarX.App;
 
@@ -13,8 +15,12 @@ public partial class OverlayWindow : Window
 {
     private const int BarHeight = 3;
 
+    private static readonly IBrush DefaultBarBrush = new SolidColorBrush(Color.Parse("#3B82F6"));
+    private static readonly IBrush FlashBrush = Brushes.White;
+
     private Rectangle? _progressBar;
     private TrayController? _boundController;
+    private CompletionAnimator? _animator;
 
     public OverlayWindow()
     {
@@ -49,6 +55,7 @@ public partial class OverlayWindow : Window
         if (_boundController is not null)
         {
             _boundController.PropertyChanged -= OnControllerPropertyChanged;
+            _boundController.Completed -= OnTimerCompleted;
         }
 
         _boundController = DataContext as TrayController;
@@ -56,6 +63,7 @@ public partial class OverlayWindow : Window
         if (_boundController is not null)
         {
             _boundController.PropertyChanged += OnControllerPropertyChanged;
+            _boundController.Completed += OnTimerCompleted;
         }
 
         UpdateProgressBarWidth();
@@ -63,10 +71,28 @@ public partial class OverlayWindow : Window
 
     private void OnControllerPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName is nameof(TrayController.Progress) or nameof(TrayController.IsBarVisible))
+        if (e.PropertyName == nameof(TrayController.Progress) || e.PropertyName == nameof(TrayController.IsBarVisible))
         {
             UpdateProgressBarWidth();
         }
+
+        if (e.PropertyName == nameof(TrayController.IsBarVisible) && _boundController is { IsBarVisible: true })
+        {
+            // A new timer started — cancel any in-flight completion animation
+            // and restore opacity/color.
+            _animator?.Cancel();
+            _animator = null;
+            Opacity = 1.0;
+            if (_progressBar is not null) _progressBar.Fill = DefaultBarBrush;
+        }
+    }
+
+    private void OnTimerCompleted()
+    {
+        if (_progressBar is null) return;
+        _animator?.Cancel();
+        _animator = new CompletionAnimator(this, _progressBar, DefaultBarBrush, FlashBrush);
+        _animator.Run();
     }
 
     private void UpdateProgressBarWidth()

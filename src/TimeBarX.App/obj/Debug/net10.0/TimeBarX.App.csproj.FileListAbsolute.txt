@@ -93,3 +93,5 @@
 /Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.App/obj/Debug/net10.0/ref/TimeBarX.App.dll
 /Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.App/bin/Debug/net10.0/Microsoft.Win32.SystemEvents.dll
 /Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.App/bin/Debug/net10.0/runtimes/win/lib/net8.0/Microsoft.Win32.SystemEvents.dll
+/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.App/bin/Debug/net10.0/System.Windows.Extensions.dll
+/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.App/bin/Debug/net10.0/runtimes/win/lib/net8.0/System.Windows.Extensions.dll

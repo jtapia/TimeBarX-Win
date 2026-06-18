@@ -14,6 +14,7 @@
           "Avalonia.Themes.Fluent": "12.0.4",
           "AvaloniaUI.DiagnosticsSupport": "2.2.1",
           "Microsoft.Win32.SystemEvents": "8.0.0",
+          "System.Windows.Extensions": "8.0.0",
           "TimeBarX.Core": "1.0.0"
         },
         "runtime": {
@@ -537,6 +538,22 @@
           }
         }
       },
+      "System.Windows.Extensions/8.0.0": {
+        "runtime": {
+          "lib/net8.0/System.Windows.Extensions.dll": {
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53103"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/net8.0/System.Windows.Extensions.dll": {
+            "rid": "win",
+            "assetType": "runtime",
+            "assemblyVersion": "8.0.0.0",
+            "fileVersion": "8.0.23.53103"
+          }
+        }
+      },
       "Tmds.DBus.Protocol/0.92.0": {
         "runtime": {
           "lib/net9.0/Tmds.DBus.Protocol.dll": {
@@ -749,6 +766,13 @@
       "sha512": "sha512-XOpbx/4CReO2wYsq2s6rbvdauc6dntG4Zv499sHGTJ87bwZaFXszFkwql3+FIZMc8kUPeaj3Mx2ezIJmo8a1Kg==",
       "path": "skiasharp.nativeassets.win32/3.119.4",
       "hashPath": "skiasharp.nativeassets.win32.3.119.4.nupkg.sha512"
+    },
+    "System.Windows.Extensions/8.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Obg3a90MkOw9mYKxrardLpY2u0axDMrSmy4JCdq2cYbelM2cUwmUir5Bomvd1yxmPL9h5LVHU1tuKBZpUjfASg==",
+      "path": "system.windows.extensions/8.0.0",
+      "hashPath": "system.windows.extensions.8.0.0.nupkg.sha512"
     },
     "Tmds.DBus.Protocol/0.92.0": {
       "type": "package",

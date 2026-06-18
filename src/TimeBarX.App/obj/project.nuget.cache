@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "EwQMQ1YI0DE=",
+  "dgSpecHash": "cLKar08wN14=",
   "success": true,
   "projectFilePath": "/Volumes/Macintosh SSD/Development/win/TimeBarX/src/TimeBarX.App/TimeBarX.App.csproj",
   "expectedPackageFiles": [
@@ -34,6 +34,7 @@
     "/Users/kaifan11/.nuget/packages/skiasharp.nativeassets.macos/3.119.4/skiasharp.nativeassets.macos.3.119.4.nupkg.sha512",
     "/Users/kaifan11/.nuget/packages/skiasharp.nativeassets.webassembly/3.119.4/skiasharp.nativeassets.webassembly.3.119.4.nupkg.sha512",
     "/Users/kaifan11/.nuget/packages/skiasharp.nativeassets.win32/3.119.4/skiasharp.nativeassets.win32.3.119.4.nupkg.sha512",
+    "/Users/kaifan11/.nuget/packages/system.windows.extensions/8.0.0/system.windows.extensions.8.0.0.nupkg.sha512",
     "/Users/kaifan11/.nuget/packages/tmds.dbus.protocol/0.92.0/tmds.dbus.protocol.0.92.0.nupkg.sha512"
   ],
   "logs": []
