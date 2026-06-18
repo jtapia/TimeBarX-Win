@@ -111,13 +111,16 @@ public sealed class OverlayPolicy : IDisposable
             && rect.bottom >= b.Y + b.Height;
     }
 
+    // Reused across ticks to avoid allocating a buffer every second. The policy
+    // tick always runs on the single UI dispatcher thread, so a plain static is safe.
+    private static readonly char[] ClassNameBuffer = new char[256];
+
     private static bool IsShellWindow(IntPtr hwnd)
     {
-        var buffer = new char[256];
-        var len = GetClassName(hwnd, buffer, buffer.Length);
+        var len = GetClassName(hwnd, ClassNameBuffer, ClassNameBuffer.Length);
         if (len <= 0) return false;
-        var className = new string(buffer, 0, len);
-        return className is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd";
+        return new ReadOnlySpan<char>(ClassNameBuffer, 0, len)
+            is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd";
     }
 
     // ---- Win32 ----
