@@ -92,6 +92,13 @@ public sealed class OverlayPolicy : IDisposable
     private static bool IsExclusiveFullscreen(IntPtr foreground, Window overlay)
     {
         if (foreground == IntPtr.Zero) return false;
+
+        // The desktop shell (Progman / WorkerW) and the shell tray also span the
+        // whole screen, so the bounds check below would treat "clicking the
+        // desktop" as exclusive-fullscreen and hide the bar. Exclude them: only
+        // genuine app windows should ever suppress the overlay.
+        if (IsShellWindow(foreground)) return false;
+
         if (!GetWindowRect(foreground, out var rect)) return false;
 
         // Compare against the overlay's screen bounds.
@@ -102,6 +109,15 @@ public sealed class OverlayPolicy : IDisposable
             && rect.top <= b.Y
             && rect.right >= b.X + b.Width
             && rect.bottom >= b.Y + b.Height;
+    }
+
+    private static bool IsShellWindow(IntPtr hwnd)
+    {
+        var buffer = new char[256];
+        var len = GetClassName(hwnd, buffer, buffer.Length);
+        if (len <= 0) return false;
+        var className = new string(buffer, 0, len);
+        return className is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd";
     }
 
     // ---- Win32 ----
@@ -127,6 +143,9 @@ public sealed class OverlayPolicy : IDisposable
 
     [DllImport("user32.dll")]
     private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
+
+    [DllImport("user32.dll", EntryPoint = "GetClassNameW", CharSet = CharSet.Unicode)]
+    private static extern int GetClassName(IntPtr hWnd, char[] lpClassName, int nMaxCount);
 
     [StructLayout(LayoutKind.Sequential)]
     private struct RECT

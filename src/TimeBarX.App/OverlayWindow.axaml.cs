@@ -159,19 +159,23 @@ public partial class OverlayWindow : Window
         var handle = TryGetPlatformHandle()?.Handle;
         if (handle is null || handle == IntPtr.Zero) return;
 
-        // Click-through + keep-out-of-taskbar/alt-tab. Do NOT add WS_EX_LAYERED:
-        // Avalonia's transparent window already composes via DWM, and forcing the
-        // legacy layered-window code path makes the window stop rendering its
-        // content (the bar disappears on Windows 11). WS_EX_TRANSPARENT alone is
-        // enough for hit-testing pass-through on a composed window.
+        // Click-through requires BOTH WS_EX_LAYERED and WS_EX_TRANSPARENT — with
+        // WS_EX_TRANSPARENT alone, Windows still hit-tests the window normally and
+        // the overlay swallows clicks on caption buttons of maximized apps sitting
+        // under it. We then immediately call SetLayeredWindowAttributes(LWA_ALPHA)
+        // so the window stays in the DWM-composed path (no UpdateLayeredWindow
+        // fallback, which would break Avalonia's GPU rendering).
         const int GWL_EXSTYLE = -20;
+        const int WS_EX_LAYERED = 0x00080000;
         const int WS_EX_TRANSPARENT = 0x00000020;
         const int WS_EX_TOOLWINDOW = 0x00000080;
         const int WS_EX_NOACTIVATE = 0x08000000;
+        const uint LWA_ALPHA = 0x00000002;
 
         var current = GetWindowLongPtr(handle.Value, GWL_EXSTYLE).ToInt64();
-        var updated = current | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
+        var updated = current | WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
         SetWindowLongPtr(handle.Value, GWL_EXSTYLE, new IntPtr(updated));
+        SetLayeredWindowAttributes(handle.Value, 0, 255, LWA_ALPHA);
     }
 
     [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW", SetLastError = true)]
@@ -179,4 +183,7 @@ public partial class OverlayWindow : Window
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW", SetLastError = true)]
     private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+
+    [DllImport("user32.dll")]
+    private static extern bool SetLayeredWindowAttributes(IntPtr hWnd, uint crKey, byte bAlpha, uint dwFlags);
 }
