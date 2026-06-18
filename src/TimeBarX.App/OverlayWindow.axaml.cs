@@ -8,19 +8,18 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using TimeBarX.Core;
 
 namespace TimeBarX.App;
 
 public partial class OverlayWindow : Window
 {
-    private const int BarHeight = 3;
-
-    private static readonly IBrush DefaultBarBrush = new SolidColorBrush(Color.Parse("#3B82F6"));
     private static readonly IBrush FlashBrush = Brushes.White;
 
     private Rectangle? _progressBar;
     private TrayController? _boundController;
     private CompletionAnimator? _animator;
+    private Screen? _screen;
 
     public OverlayWindow()
     {
@@ -33,13 +32,22 @@ public partial class OverlayWindow : Window
 
     public void PositionOnScreen(Screen screen)
     {
-        var bounds = screen.Bounds;
-        var scaling = screen.Scaling > 0 ? screen.Scaling : 1.0;
+        _screen = screen;
+        ApplyScreenLayout();
+    }
+
+    private void ApplyScreenLayout()
+    {
+        if (_screen is null) return;
+        var bounds = _screen.Bounds;
+        var scaling = _screen.Scaling > 0 ? _screen.Scaling : 1.0;
+        var barHeight = (int)(_boundController?.Settings.Height ?? BarHeight.Normal);
 
         Width = bounds.Width / scaling;
-        Height = BarHeight;
+        Height = barHeight;
         Position = new PixelPoint(bounds.X, bounds.Y);
 
+        if (_progressBar is not null) _progressBar.Height = barHeight;
         UpdateProgressBarWidth();
     }
 
@@ -56,6 +64,7 @@ public partial class OverlayWindow : Window
         {
             _boundController.PropertyChanged -= OnControllerPropertyChanged;
             _boundController.Completed -= OnTimerCompleted;
+            _boundController.SettingsChanged -= ApplySettings;
         }
 
         _boundController = DataContext as TrayController;
@@ -64,9 +73,28 @@ public partial class OverlayWindow : Window
         {
             _boundController.PropertyChanged += OnControllerPropertyChanged;
             _boundController.Completed += OnTimerCompleted;
+            _boundController.SettingsChanged += ApplySettings;
         }
 
+        ApplySettings();
         UpdateProgressBarWidth();
+    }
+
+    private void ApplySettings()
+    {
+        if (_boundController is null) return;
+        var settings = _boundController.Settings;
+        Opacity = settings.Opacity;
+        ApplyScreenLayout();
+        ApplyBarColor();
+    }
+
+    private void ApplyBarColor()
+    {
+        if (_progressBar is null || _boundController is null) return;
+        if (_animator is { IsActive: true }) return; // animator owns the brush mid-sequence
+        var rgb = BarColorPalette.ForProgress(_boundController.Settings, _boundController.Progress);
+        _progressBar.Fill = new SolidColorBrush(Color.FromRgb(rgb.R, rgb.G, rgb.B));
     }
 
     private void OnControllerPropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -74,24 +102,27 @@ public partial class OverlayWindow : Window
         if (e.PropertyName == nameof(TrayController.Progress) || e.PropertyName == nameof(TrayController.IsBarVisible))
         {
             UpdateProgressBarWidth();
+            ApplyBarColor();
         }
 
         if (e.PropertyName == nameof(TrayController.IsBarVisible) && _boundController is { IsBarVisible: true })
         {
             // A new timer started — cancel any in-flight completion animation
-            // and restore opacity/color.
+            // and restore opacity/color from settings.
             _animator?.Cancel();
             _animator = null;
-            Opacity = 1.0;
-            if (_progressBar is not null) _progressBar.Fill = DefaultBarBrush;
+            Opacity = _boundController.Settings.Opacity;
+            ApplyBarColor();
         }
     }
 
     private void OnTimerCompleted()
     {
-        if (_progressBar is null) return;
+        if (_progressBar is null || _boundController is null) return;
         _animator?.Cancel();
-        _animator = new CompletionAnimator(this, _progressBar, DefaultBarBrush, FlashBrush);
+        var rgb = BarColorPalette.ForProgress(_boundController.Settings, 1.0);
+        var resting = new SolidColorBrush(Color.FromRgb(rgb.R, rgb.G, rgb.B));
+        _animator = new CompletionAnimator(this, _progressBar, resting, FlashBrush, _boundController.Settings.Opacity);
         _animator.Run();
     }
 

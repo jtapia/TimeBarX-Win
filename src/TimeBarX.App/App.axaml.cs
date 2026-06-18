@@ -88,6 +88,24 @@ public partial class App : Application
     private void OnResumeClicked(object? sender, System.EventArgs e) => Controller.Resume();
     private void OnStopClicked(object? sender, System.EventArgs e) => Controller.Stop();
 
+    private void OnColorBlueClicked(object? sender, System.EventArgs e)   => Controller.UpdateSettings(s => s with { Color = TimeBarX.Core.BarColor.Blue });
+    private void OnColorPurpleClicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s with { Color = TimeBarX.Core.BarColor.Purple });
+    private void OnColorGreenClicked(object? sender, System.EventArgs e)  => Controller.UpdateSettings(s => s with { Color = TimeBarX.Core.BarColor.Green });
+    private void OnColorRedClicked(object? sender, System.EventArgs e)    => Controller.UpdateSettings(s => s with { Color = TimeBarX.Core.BarColor.Red });
+    private void OnColorAccentClicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s with { Color = TimeBarX.Core.BarColor.Accent });
+
+    private void OnHeight2Clicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s with { Height = TimeBarX.Core.BarHeight.Thin });
+    private void OnHeight3Clicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s with { Height = TimeBarX.Core.BarHeight.Normal });
+    private void OnHeight4Clicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s with { Height = TimeBarX.Core.BarHeight.Thick });
+
+    private void OnOpacity100Clicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s.WithOpacity(1.0));
+    private void OnOpacity80Clicked(object? sender, System.EventArgs e)  => Controller.UpdateSettings(s => s.WithOpacity(0.8));
+    private void OnOpacity60Clicked(object? sender, System.EventArgs e)  => Controller.UpdateSettings(s => s.WithOpacity(0.6));
+    private void OnOpacity40Clicked(object? sender, System.EventArgs e)  => Controller.UpdateSettings(s => s.WithOpacity(0.4));
+
+    private void OnGradientToggleClicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s with { GradientMode = !s.GradientMode });
+    private void OnSoundToggleClicked(object? sender, System.EventArgs e)    => Controller.UpdateSettings(s => s with { PlayCompletionSound = !s.PlayCompletionSound });
+
     private void OnQuitClicked(object? sender, System.EventArgs e)
     {
         _hotkey?.Dispose();

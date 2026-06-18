@@ -16,27 +16,46 @@ public sealed class TrayController : INotifyPropertyChanged
 
     private readonly TimerEngine _engine = new();
     private readonly ITimerStore _store;
+    private readonly ISettingsStore _settingsStore;
     private readonly DispatcherTimer _ticker;
 
     private string _currentPreset = DefaultPreset;
     private TimerState _lastState = TimerState.Idle;
+    private AppSettings _settings;
 
     /// <summary>Raised once when the timer transitions into Completed.</summary>
     public event Action? Completed;
 
+    /// <summary>Raised when settings change so views can re-render.</summary>
+    public event Action? SettingsChanged;
+
+    public AppSettings Settings => _settings;
+
     /// <summary>If true, play a short sound on completion. Default off per PLAN.md.</summary>
-    public bool PlayCompletionSound { get; set; }
+    public bool PlayCompletionSound => _settings.PlayCompletionSound;
 
     public TrayController()
-        : this(new JsonTimerStore())
+        : this(new JsonTimerStore(), new JsonSettingsStore())
     {
     }
 
-    public TrayController(ITimerStore store)
+    public TrayController(ITimerStore store, ISettingsStore settingsStore)
     {
         _store = store;
+        _settingsStore = settingsStore;
+        _settings = _settingsStore.Load();
         _ticker = new DispatcherTimer { Interval = RefreshInterval };
         _ticker.Tick += (_, _) => RefreshFromEngine();
+    }
+
+    public void UpdateSettings(Func<AppSettings, AppSettings> mutator)
+    {
+        var next = mutator(_settings);
+        if (next.Equals(_settings)) return;
+        _settings = next;
+        try { _settingsStore.Save(_settings); }
+        catch { /* best-effort */ }
+        SettingsChanged?.Invoke();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

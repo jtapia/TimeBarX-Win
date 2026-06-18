@@ -26,16 +26,20 @@ internal sealed class CompletionAnimator
     private readonly Rectangle _bar;
     private readonly IBrush _restingBrush;
     private readonly IBrush _flashBrush;
+    private readonly double _restingOpacity;
     private readonly DispatcherTimer _timer;
     private readonly DateTimeOffset _startedAt = DateTimeOffset.UtcNow;
     private bool _cancelled;
 
-    public CompletionAnimator(Window window, Rectangle bar, IBrush restingBrush, IBrush flashBrush)
+    public bool IsActive => _timer.IsEnabled && !_cancelled;
+
+    public CompletionAnimator(Window window, Rectangle bar, IBrush restingBrush, IBrush flashBrush, double restingOpacity = 1.0)
     {
         _window = window;
         _bar = bar;
         _restingBrush = restingBrush;
         _flashBrush = flashBrush;
+        _restingOpacity = restingOpacity;
         _timer = new DispatcherTimer { Interval = Frame };
         _timer.Tick += (_, _) => Step();
     }
@@ -50,7 +54,7 @@ internal sealed class CompletionAnimator
         if (_cancelled) return;
         _cancelled = true;
         _timer.Stop();
-        _window.Opacity = 1.0;
+        _window.Opacity = _restingOpacity;
         _bar.Fill = _restingBrush;
     }
 
@@ -68,7 +72,7 @@ internal sealed class CompletionAnimator
         if (elapsed < phaseEndFlash)
         {
             _bar.Fill = _flashBrush;
-            _window.Opacity = 1.0;
+            _window.Opacity = _restingOpacity;
             return;
         }
 
@@ -78,9 +82,9 @@ internal sealed class CompletionAnimator
             var inPulse = elapsed - phaseEndFlash;
             var cyclePos = inPulse.Ticks % (PulseHalf.Ticks * 2);
             var t = cyclePos / (double)(PulseHalf.Ticks * 2); // 0..1 across one cycle
-            // Triangle wave: 1 → floor → 1
+            // Triangle wave: 1 → floor → 1 scaled by resting opacity
             var v = t < 0.5 ? 1.0 - (1.0 - PulseFloor) * (t * 2) : PulseFloor + (1.0 - PulseFloor) * ((t - 0.5) * 2);
-            _window.Opacity = v;
+            _window.Opacity = v * _restingOpacity;
             return;
         }
 
@@ -90,7 +94,7 @@ internal sealed class CompletionAnimator
             var fadeT = (elapsed - phaseEndPulse).TotalMilliseconds / FadeDuration.TotalMilliseconds;
             if (fadeT < 0) fadeT = 0;
             if (fadeT > 1) fadeT = 1;
-            _window.Opacity = 1.0 - fadeT;
+            _window.Opacity = (1.0 - fadeT) * _restingOpacity;
             return;
         }
 

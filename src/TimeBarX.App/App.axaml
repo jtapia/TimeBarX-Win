@@ -30,6 +30,37 @@
                                         Click="OnStopClicked"
                                         IsEnabled="{Binding CanStop}" />
                         <NativeMenuItemSeparator />
+                        <NativeMenuItem Header="Appearance">
+                            <NativeMenu>
+                                <NativeMenuItem Header="Color">
+                                    <NativeMenu>
+                                        <NativeMenuItem Header="Blue" Click="OnColorBlueClicked" />
+                                        <NativeMenuItem Header="Purple" Click="OnColorPurpleClicked" />
+                                        <NativeMenuItem Header="Green" Click="OnColorGreenClicked" />
+                                        <NativeMenuItem Header="Red" Click="OnColorRedClicked" />
+                                        <NativeMenuItem Header="System Accent" Click="OnColorAccentClicked" />
+                                    </NativeMenu>
+                                </NativeMenuItem>
+                                <NativeMenuItem Header="Height">
+                                    <NativeMenu>
+                                        <NativeMenuItem Header="2 px" Click="OnHeight2Clicked" />
+                                        <NativeMenuItem Header="3 px" Click="OnHeight3Clicked" />
+                                        <NativeMenuItem Header="4 px" Click="OnHeight4Clicked" />
+                                    </NativeMenu>
+                                </NativeMenuItem>
+                                <NativeMenuItem Header="Opacity">
+                                    <NativeMenu>
+                                        <NativeMenuItem Header="100%" Click="OnOpacity100Clicked" />
+                                        <NativeMenuItem Header="80%" Click="OnOpacity80Clicked" />
+                                        <NativeMenuItem Header="60%" Click="OnOpacity60Clicked" />
+                                        <NativeMenuItem Header="40%" Click="OnOpacity40Clicked" />
+                                    </NativeMenu>
+                                </NativeMenuItem>
+                                <NativeMenuItem Header="Toggle Gradient Mode" Click="OnGradientToggleClicked" />
+                                <NativeMenuItem Header="Toggle Completion Sound" Click="OnSoundToggleClicked" />
+                            </NativeMenu>
+                        </NativeMenuItem>
+                        <NativeMenuItemSeparator />
                         <NativeMenuItem Header="Quit" Click="OnQuitClicked" />
                     </NativeMenu>
                 </TrayIcon.Menu>
