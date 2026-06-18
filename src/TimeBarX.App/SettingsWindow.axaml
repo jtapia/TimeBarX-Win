@@ -50,9 +50,9 @@
                 <Separator />
                 <TextBlock Text="Height" FontWeight="SemiBold" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <RadioButton GroupName="Height" Content="2 px" Click="OnHeight2" />
-                    <RadioButton GroupName="Height" Content="3 px" Click="OnHeight3" />
-                    <RadioButton GroupName="Height" Content="4 px" Click="OnHeight4" />
+                    <RadioButton GroupName="Height" Content="5 px" Click="OnHeight2" />
+                    <RadioButton GroupName="Height" Content="7 px" Click="OnHeight3" />
+                    <RadioButton GroupName="Height" Content="10 px" Click="OnHeight4" />
                 </StackPanel>
                 <Separator />
                 <TextBlock Text="Opacity" FontWeight="SemiBold" />

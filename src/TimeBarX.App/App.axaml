@@ -43,9 +43,9 @@
                                 </NativeMenuItem>
                                 <NativeMenuItem Header="Height">
                                     <NativeMenu>
-                                        <NativeMenuItem Header="2 px" Click="OnHeight2Clicked" />
-                                        <NativeMenuItem Header="3 px" Click="OnHeight3Clicked" />
-                                        <NativeMenuItem Header="4 px" Click="OnHeight4Clicked" />
+                                        <NativeMenuItem Header="Thin" Click="OnHeight2Clicked" />
+                                        <NativeMenuItem Header="Medium" Click="OnHeight3Clicked" />
+                                        <NativeMenuItem Header="Large" Click="OnHeight4Clicked" />
                                     </NativeMenu>
                                 </NativeMenuItem>
                                 <NativeMenuItem Header="Opacity">
