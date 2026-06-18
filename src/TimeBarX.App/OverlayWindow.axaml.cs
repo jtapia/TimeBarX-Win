@@ -159,14 +159,18 @@ public partial class OverlayWindow : Window
         var handle = TryGetPlatformHandle()?.Handle;
         if (handle is null || handle == IntPtr.Zero) return;
 
+        // Click-through + keep-out-of-taskbar/alt-tab. Do NOT add WS_EX_LAYERED:
+        // Avalonia's transparent window already composes via DWM, and forcing the
+        // legacy layered-window code path makes the window stop rendering its
+        // content (the bar disappears on Windows 11). WS_EX_TRANSPARENT alone is
+        // enough for hit-testing pass-through on a composed window.
         const int GWL_EXSTYLE = -20;
         const int WS_EX_TRANSPARENT = 0x00000020;
-        const int WS_EX_LAYERED = 0x00080000;
         const int WS_EX_TOOLWINDOW = 0x00000080;
         const int WS_EX_NOACTIVATE = 0x08000000;
 
         var current = GetWindowLongPtr(handle.Value, GWL_EXSTYLE).ToInt64();
-        var updated = current | WS_EX_TRANSPARENT | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
+        var updated = current | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE;
         SetWindowLongPtr(handle.Value, GWL_EXSTYLE, new IntPtr(updated));
     }
 
