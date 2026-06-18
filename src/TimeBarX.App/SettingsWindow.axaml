@@ -19,6 +19,21 @@
                 </StackPanel>
                 <Separator />
                 <CheckBox Name="SoundCheck" Content="Play sound when timer completes" Click="OnSoundCheckClicked" />
+                <Separator />
+                <CheckBox Name="AlwaysAboveCheck"
+                          Content="Always above everything (experimental)"
+                          Click="OnAlwaysAboveClicked" />
+                <Border Name="AlwaysAboveWarning"
+                        IsVisible="False"
+                        Background="#3F2A14"
+                        BorderBrush="#A16207"
+                        BorderThickness="1"
+                        CornerRadius="6"
+                        Padding="10,6">
+                    <TextBlock Foreground="#FCD34D"
+                               TextWrapping="Wrap"
+                               Text="Experimental — may not work with all applications. Some games or anti-cheat systems may behave unexpectedly." />
+                </Border>
             </StackPanel>
         </TabItem>
 

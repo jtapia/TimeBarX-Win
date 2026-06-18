@@ -19,6 +19,7 @@ public partial class OverlayWindow : Window
     private Rectangle? _progressBar;
     private TrayController? _boundController;
     private CompletionAnimator? _animator;
+    private OverlayPolicy? _policy;
     private Screen? _screen;
 
     public OverlayWindow()
@@ -56,6 +57,20 @@ public partial class OverlayWindow : Window
         base.OnOpened(e);
         ApplyClickThrough();
         UpdateProgressBarWidth();
+        StartPolicyIfReady();
+    }
+
+    private void StartPolicyIfReady()
+    {
+        if (_policy is not null || _boundController is null) return;
+        _policy = new OverlayPolicy(this, _boundController);
+    }
+
+    protected override void OnClosed(EventArgs e)
+    {
+        _policy?.Dispose();
+        _policy = null;
+        base.OnClosed(e);
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
@@ -78,6 +93,7 @@ public partial class OverlayWindow : Window
 
         ApplySettings();
         UpdateProgressBarWidth();
+        StartPolicyIfReady();
     }
 
     private void ApplySettings()

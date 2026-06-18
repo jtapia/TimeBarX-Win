@@ -13,6 +13,8 @@ public partial class SettingsWindow : Window
 
     private CheckBox? _soundCheck;
     private CheckBox? _gradientCheck;
+    private CheckBox? _alwaysAboveCheck;
+    private Control? _alwaysAboveWarning;
     private Slider? _opacitySlider;
     private TextBlock? _versionText;
 
@@ -21,6 +23,8 @@ public partial class SettingsWindow : Window
         InitializeComponent();
         _soundCheck = this.FindControl<CheckBox>("SoundCheck");
         _gradientCheck = this.FindControl<CheckBox>("GradientCheck");
+        _alwaysAboveCheck = this.FindControl<CheckBox>("AlwaysAboveCheck");
+        _alwaysAboveWarning = this.FindControl<Control>("AlwaysAboveWarning");
         _opacitySlider = this.FindControl<Slider>("OpacitySlider");
         _versionText = this.FindControl<TextBlock>("VersionText");
 
@@ -52,6 +56,8 @@ public partial class SettingsWindow : Window
             var s = _controller.Settings;
             if (_soundCheck is not null) _soundCheck.IsChecked = s.PlayCompletionSound;
             if (_gradientCheck is not null) _gradientCheck.IsChecked = s.GradientMode;
+            if (_alwaysAboveCheck is not null) _alwaysAboveCheck.IsChecked = s.AlwaysAboveEverything;
+            if (_alwaysAboveWarning is not null) _alwaysAboveWarning.IsVisible = s.AlwaysAboveEverything;
             if (_opacitySlider is not null) _opacitySlider.Value = s.Opacity;
         }
         finally
@@ -73,6 +79,9 @@ public partial class SettingsWindow : Window
     private void OnDefault90Clicked(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { DefaultDuration = TimeSpan.FromMinutes(90) });
     private void OnSoundCheckClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
         => Update(x => x with { PlayCompletionSound = _soundCheck?.IsChecked == true });
+
+    private void OnAlwaysAboveClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+        => Update(x => x with { AlwaysAboveEverything = _alwaysAboveCheck?.IsChecked == true });
 
     // Appearance
     private void OnColorAccent(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { Color = BarColor.Accent });

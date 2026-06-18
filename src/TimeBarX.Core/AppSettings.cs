@@ -22,15 +22,25 @@ public sealed record AppSettings(
     double Opacity,
     bool GradientMode,
     bool PlayCompletionSound,
-    TimeSpan DefaultDuration)
+    TimeSpan DefaultDuration,
+    bool AlwaysAboveEverything = false,
+    IReadOnlyList<string>? HideForProcesses = null)
 {
+    public static IReadOnlyList<string> DefaultHideList { get; } = new[]
+    {
+        "vlc", "mpv", "wmplayer", "PotPlayerMini64", "PotPlayer", "mpc-hc64", "mpc-hc",
+        "Netflix", "Disney+", "Hulu",
+    };
+
     public static AppSettings Default => new(
         Color: BarColor.Blue,
         Height: BarHeight.Normal,
         Opacity: 1.0,
         GradientMode: false,
         PlayCompletionSound: false,
-        DefaultDuration: TimeSpan.FromMinutes(25));
+        DefaultDuration: TimeSpan.FromMinutes(25),
+        AlwaysAboveEverything: false,
+        HideForProcesses: DefaultHideList);
 
     public AppSettings WithOpacity(double opacity)
     {
