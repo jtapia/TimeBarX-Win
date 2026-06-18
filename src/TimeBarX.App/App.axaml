@@ -17,9 +17,22 @@
                     <NativeMenu>
                         <NativeMenuItem Header="{Binding StatusLabel}" IsEnabled="False" />
                         <NativeMenuItemSeparator />
-                        <NativeMenuItem Header="Start 25 min"
-                                        Click="OnStartClicked"
-                                        IsEnabled="{Binding CanStart}" />
+                        <NativeMenuItem Header="Start timer"
+                                        IsEnabled="{Binding CanStart}">
+                            <NativeMenu>
+                                <NativeMenuItem Header="1 min"   Click="OnStart1Clicked" />
+                                <NativeMenuItem Header="5 min"   Click="OnStart5Clicked" />
+                                <NativeMenuItem Header="10 min"  Click="OnStart10Clicked" />
+                                <NativeMenuItem Header="15 min"  Click="OnStart15Clicked" />
+                                <NativeMenuItem Header="20 min"  Click="OnStart20Clicked" />
+                                <NativeMenuItem Header="25 min"  Click="OnStart25Clicked" />
+                                <NativeMenuItem Header="45 min"  Click="OnStart45Clicked" />
+                                <NativeMenuItem Header="60 min"  Click="OnStart60Clicked" />
+                                <NativeMenuItem Header="90 min"  Click="OnStart90Clicked" />
+                                <NativeMenuItemSeparator />
+                                <NativeMenuItem Header="Custom…" Click="OnStartCustomClicked" />
+                            </NativeMenu>
+                        </NativeMenuItem>
                         <NativeMenuItem Header="Pause"
                                         Click="OnPauseClicked"
                                         IsEnabled="{Binding CanPause}" />

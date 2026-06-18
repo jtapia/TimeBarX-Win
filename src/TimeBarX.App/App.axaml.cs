@@ -139,6 +139,20 @@ public partial class App : Application
     }
 
     private void OnStartClicked(object? sender, System.EventArgs e) => Controller.Start();
+
+    private void StartPreset(int minutes)
+        => Controller.StartCustom(System.TimeSpan.FromMinutes(minutes), $"{minutes}m");
+
+    private void OnStart1Clicked(object? sender, System.EventArgs e)  => StartPreset(1);
+    private void OnStart5Clicked(object? sender, System.EventArgs e)  => StartPreset(5);
+    private void OnStart10Clicked(object? sender, System.EventArgs e) => StartPreset(10);
+    private void OnStart15Clicked(object? sender, System.EventArgs e) => StartPreset(15);
+    private void OnStart20Clicked(object? sender, System.EventArgs e) => StartPreset(20);
+    private void OnStart25Clicked(object? sender, System.EventArgs e) => StartPreset(25);
+    private void OnStart45Clicked(object? sender, System.EventArgs e) => StartPreset(45);
+    private void OnStart60Clicked(object? sender, System.EventArgs e) => StartPreset(60);
+    private void OnStart90Clicked(object? sender, System.EventArgs e) => StartPreset(90);
+    private void OnStartCustomClicked(object? sender, System.EventArgs e) => ShowQuickInput();
     private void OnPauseClicked(object? sender, System.EventArgs e) => Controller.Pause();
     private void OnResumeClicked(object? sender, System.EventArgs e) => Controller.Resume();
     private void OnStopClicked(object? sender, System.EventArgs e) => Controller.Stop();
