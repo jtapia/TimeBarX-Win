@@ -138,8 +138,6 @@ public partial class App : Application
         window.Show();
     }
 
-    private void OnStartClicked(object? sender, System.EventArgs e) => Controller.Start();
-
     private void StartPreset(int minutes)
         => Controller.StartCustom(System.TimeSpan.FromMinutes(minutes), $"{minutes}m");
 
@@ -157,25 +155,13 @@ public partial class App : Application
     private void OnResumeClicked(object? sender, System.EventArgs e) => Controller.Resume();
     private void OnStopClicked(object? sender, System.EventArgs e) => Controller.Stop();
 
-    private void OnColorBlueClicked(object? sender, System.EventArgs e)   => Controller.UpdateSettings(s => s with { Color = TimeBarX.Core.BarColor.Blue });
-    private void OnColorPurpleClicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s with { Color = TimeBarX.Core.BarColor.Purple });
-    private void OnColorGreenClicked(object? sender, System.EventArgs e)  => Controller.UpdateSettings(s => s with { Color = TimeBarX.Core.BarColor.Green });
-    private void OnColorRedClicked(object? sender, System.EventArgs e)    => Controller.UpdateSettings(s => s with { Color = TimeBarX.Core.BarColor.Red });
-    private void OnColorAccentClicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s with { Color = TimeBarX.Core.BarColor.Accent });
+    // Left-clicking the tray icon opens Settings — the primary place to adjust
+    // appearance and behavior (the context menu keeps only quick timer actions).
+    private void OnTrayIconClicked(object? sender, System.EventArgs e) => OpenSettings();
 
-    private void OnHeight2Clicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s with { Height = TimeBarX.Core.BarHeight.Thin });
-    private void OnHeight3Clicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s with { Height = TimeBarX.Core.BarHeight.Normal });
-    private void OnHeight4Clicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s with { Height = TimeBarX.Core.BarHeight.Thick });
+    private void OnSettingsClicked(object? sender, System.EventArgs e) => OpenSettings();
 
-    private void OnOpacity100Clicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s.WithOpacity(1.0));
-    private void OnOpacity80Clicked(object? sender, System.EventArgs e)  => Controller.UpdateSettings(s => s.WithOpacity(0.8));
-    private void OnOpacity60Clicked(object? sender, System.EventArgs e)  => Controller.UpdateSettings(s => s.WithOpacity(0.6));
-    private void OnOpacity40Clicked(object? sender, System.EventArgs e)  => Controller.UpdateSettings(s => s.WithOpacity(0.4));
-
-    private void OnGradientToggleClicked(object? sender, System.EventArgs e) => Controller.UpdateSettings(s => s with { GradientMode = !s.GradientMode });
-    private void OnSoundToggleClicked(object? sender, System.EventArgs e)    => Controller.UpdateSettings(s => s with { PlayCompletionSound = !s.PlayCompletionSound });
-
-    private void OnSettingsClicked(object? sender, System.EventArgs e)
+    private void OpenSettings()
     {
         if (_settings is not null)
         {
