@@ -1,10 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
-  <rect width="256" height="256" rx="48" fill="#0F172A"/>
-  <rect x="32" y="32" width="192" height="14" rx="7" fill="#1E293B"/>
-  <rect x="32" y="32" width="124" height="14" rx="7" fill="#3B82F6"/>
-  <rect x="32" y="78" width="192" height="146" rx="20" fill="#0B1220" opacity="0.4"/>
-  <g fill="#94A3B8" font-family="Inter,system-ui,sans-serif" font-weight="600" text-anchor="middle">
-    <text x="128" y="170" font-size="56">TimeBar</text>
-    <text x="128" y="210" font-size="56" fill="#3B82F6">X</text>
-  </g>
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  TimeBarX icon (Windows).
+  This SVG is a thin wrapper around icon-master.png (the real raster artwork).
+  The build pipeline regenerates icon.ico from this SVG; keeping it as a
+  raster-embedding SVG lets the existing pipeline keep working while ensuring
+  the rendered .ico matches the macOS/iOS/watchOS squircle icon.
+  To update the icon: replace icon-master.png — this SVG embeds it relatively.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024"
+     xmlns:xlink="http://www.w3.org/1999/xlink">
+  <image href="icon-master.png" x="0" y="0" width="1024" height="1024"/>
 </svg>
