@@ -10,12 +10,16 @@ using TimeBarX.Core;
 namespace TimeBarX.App;
 
 /// <summary>
-/// Drives experimental "always above everything" behavior on Windows:
-///   - reasserts HWND_TOPMOST periodically while enabled
-///   - hides the overlay when the foreground window belongs to a process in
-///     the configured exclusion list (e.g. video players, full-screen games)
-///   - skips top-most poking while an exclusive-fullscreen window covers the
-///     overlay's monitor, so games don't lose focus
+/// Polls once/sec while the bar is visible and adjusts overlay visibility/Z-order
+/// on Windows:
+///   - hides the overlay when the foreground window's process is in the configured
+///     exclusion list (e.g. video players)
+///   - in Top mode, hides for an exclusive-fullscreen app so games/video aren't
+///     covered (shell surfaces like the Start menu/Search are excluded); this
+///     check is skipped entirely in Bottom mode, where the bar is fused to the
+///     taskbar that a real fullscreen app already hides
+///   - reasserts HWND_TOPMOST when it must out-rank other top-most windows:
+///     "always above everything" mode, or Bottom mode (sitting over the taskbar)
 /// All cross-platform no-ops outside Windows.
 /// </summary>
 public sealed class OverlayPolicy : IDisposable
@@ -66,16 +70,25 @@ public sealed class OverlayPolicy : IDisposable
 
         var settings = _controller.Settings;
         var foreground = GetForegroundWindow();
+        var bottomMode = settings.Position == BarPosition.Bottom;
 
-        // Only resolve the foreground process (an OpenProcess handle, once/sec
-        // while visible) when there's actually a hide-list to match against.
+        // Resolve the foreground process name at most once per tick (an OpenProcess
+        // handle). Both the hide-list match and Top mode's shell-window exclusion
+        // need it; skip it only when neither consumer will run (empty hide-list and
+        // Bottom mode, where the fullscreen check doesn't run at all).
         var hideList = settings.HideForProcesses;
-        var foregroundProcess = hideList is { Count: > 0 } ? ProcessNameForWindow(foreground) : null;
+        var hasHideList = hideList is { Count: > 0 };
+        var foregroundProcess = (hasHideList || !bottomMode) ? ProcessNameForWindow(foreground) : null;
 
-        var hideForProcess = !string.IsNullOrEmpty(foregroundProcess)
+        var hideForProcess = !string.IsNullOrEmpty(foregroundProcess) && hasHideList
             && hideList!.Any(p => string.Equals(p, foregroundProcess, StringComparison.OrdinalIgnoreCase));
 
-        var foregroundIsFullscreen = IsExclusiveFullscreen(foreground, _overlay);
+        // The fullscreen-hide only serves Top mode (get out of a game/video's way).
+        // In Bottom mode the bar is fused to the taskbar — a true exclusive-fullscreen
+        // app hides the taskbar itself, so the OS already covers us. Running the
+        // heuristic there only produces false positives (Start menu, Search, maximized
+        // windows, "app bars") that make the bar flicker away. So skip it in Bottom mode.
+        var foregroundIsFullscreen = !bottomMode && IsExclusiveFullscreen(foreground, foregroundProcess, _overlay);
 
         // Default behavior (PLAN.md Mode 1): hide for known full-screen / video apps.
         // Experimental mode (PLAN.md Mode 2): also push above everything else when possible.
@@ -87,7 +100,12 @@ public sealed class OverlayPolicy : IDisposable
         var wantVisible = !shouldHide;
         if (_overlay.IsVisible != wantVisible) _overlay.IsVisible = wantVisible;
 
-        if (settings.AlwaysAboveEverything && !shouldHide && !foregroundIsFullscreen)
+        // Reassert top-most when we need to stay above other top-most windows:
+        //  - experimental "always above everything" mode, or
+        //  - bottom/taskbar-fill mode, where we sit over the (top-most) taskbar
+        //    and must out-rank it on every focus change.
+        var needsTopmost = settings.AlwaysAboveEverything || bottomMode;
+        if (needsTopmost && !shouldHide && !foregroundIsFullscreen)
         {
             ReassertTopmost(handle.Value);
         }
@@ -109,17 +127,20 @@ public sealed class OverlayPolicy : IDisposable
         }
     }
 
-    private static bool IsExclusiveFullscreen(IntPtr foreground, Window overlay)
+    private static bool IsExclusiveFullscreen(IntPtr foreground, string? foregroundProcess, Window overlay)
     {
         if (foreground == IntPtr.Zero) return false;
 
-        // The desktop shell (Progman / WorkerW) and the shell tray also span the
-        // whole screen, so the bounds check below would treat "clicking the
-        // desktop" as exclusive-fullscreen and hide the bar. Exclude them: only
-        // genuine app windows should ever suppress the overlay.
-        if (IsShellWindow(foreground)) return false;
+        // Shell surfaces — desktop (Progman/WorkerW), taskbar (Shell_TrayWnd), and
+        // the transient flyouts (Start menu, Search, Action Center) — can report a
+        // near-fullscreen rect, which would wrongly trip the bounds check below and
+        // hide the bar. None of them is a real "exclusive fullscreen app", so skip
+        // them entirely. We match by class AND by owning shell process, because the
+        // flyout class names vary across Windows builds. The process name is resolved
+        // once by the caller and passed in.
+        if (IsShellWindow(foreground) || IsShellProcessName(foregroundProcess)) return false;
 
-        if (!GetWindowRect(foreground, out var rect)) return false;
+        if (!NativeMethods.GetWindowRect(foreground, out var rect)) return false;
 
         // Compare against the overlay's screen bounds.
         var screen = overlay.Screens?.ScreenFromPoint(new PixelPoint(rect.left, rect.top));
@@ -143,20 +164,32 @@ public sealed class OverlayPolicy : IDisposable
             is "Progman" or "WorkerW" or "Shell_TrayWnd" or "Shell_SecondaryTrayWnd";
     }
 
-    // ---- Win32 ----
-
-    private static readonly IntPtr HWND_TOPMOST = new(-1);
-    private const uint SWP_NOSIZE = 0x0001;
-    private const uint SWP_NOMOVE = 0x0002;
-    private const uint SWP_NOACTIVATE = 0x0010;
-
-    private static void ReassertTopmost(IntPtr hwnd)
+    // Process names that own the desktop shell + its transient flyouts (Start
+    // menu, Search, Action Center, input/notification surfaces). A foreground
+    // window from any of these is shell chrome, not a fullscreen app.
+    private static readonly string[] ShellProcessNames =
     {
-        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+        "explorer",
+        "StartMenuExperienceHost",
+        "SearchHost",
+        "SearchApp",
+        "ShellExperienceHost",
+        "TextInputHost",
+    };
+
+    private static bool IsShellProcessName(string? name)
+    {
+        if (string.IsNullOrEmpty(name)) return false;
+        foreach (var shell in ShellProcessNames)
+        {
+            if (string.Equals(name, shell, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
     }
 
-    [DllImport("user32.dll")]
-    private static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint flags);
+    // ---- Win32 ----
+
+    private static void ReassertTopmost(IntPtr hwnd) => NativeMethods.SetTopmost(hwnd);
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();
@@ -164,18 +197,6 @@ public sealed class OverlayPolicy : IDisposable
     [DllImport("user32.dll")]
     private static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
-    [DllImport("user32.dll")]
-    private static extern bool GetWindowRect(IntPtr hWnd, out RECT rect);
-
     [DllImport("user32.dll", EntryPoint = "GetClassNameW", CharSet = CharSet.Unicode)]
     private static extern int GetClassName(IntPtr hWnd, char[] lpClassName, int nMaxCount);
-
-    [StructLayout(LayoutKind.Sequential)]
-    private struct RECT
-    {
-        public int left;
-        public int top;
-        public int right;
-        public int bottom;
-    }
 }

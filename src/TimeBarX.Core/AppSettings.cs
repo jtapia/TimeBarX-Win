@@ -16,6 +16,12 @@ public enum BarHeight
     Thick = 13,
 }
 
+public enum BarPosition
+{
+    Top,
+    Bottom,
+}
+
 public sealed record AppSettings(
     BarColor Color,
     BarHeight Height,
@@ -24,7 +30,8 @@ public sealed record AppSettings(
     bool PlayCompletionSound,
     TimeSpan DefaultDuration,
     bool AlwaysAboveEverything = false,
-    IReadOnlyList<string>? HideForProcesses = null)
+    IReadOnlyList<string>? HideForProcesses = null,
+    BarPosition Position = BarPosition.Top)
 {
     public static IReadOnlyList<string> DefaultHideList { get; } = new[]
     {

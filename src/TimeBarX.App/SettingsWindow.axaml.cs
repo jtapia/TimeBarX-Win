@@ -18,6 +18,8 @@ public partial class SettingsWindow : Window
     private Slider? _opacitySlider;
     private TextBlock? _versionText;
     private TextBlock? _updateText;
+    private Control? _heightOptions;
+    private Control? _heightHint;
 
     // Radio groups paired with their setting value, so SyncFromSettings can mark
     // the active option. Pairing radio+value at one site (vs. parallel arrays)
@@ -25,6 +27,7 @@ public partial class SettingsWindow : Window
     private (RadioButton Radio, TimeSpan Value)[]? _defaultDurationRadios;
     private (RadioButton Radio, BarColor Value)[]? _colorRadios;
     private (RadioButton Radio, BarHeight Value)[]? _heightRadios;
+    private (RadioButton Radio, BarPosition Value)[]? _positionRadios;
 
     public SettingsWindow()
     {
@@ -36,6 +39,8 @@ public partial class SettingsWindow : Window
         _opacitySlider = this.FindControl<Slider>("OpacitySlider");
         _versionText = this.FindControl<TextBlock>("VersionText");
         _updateText = this.FindControl<TextBlock>("UpdateText");
+        _heightOptions = this.FindControl<Control>("HeightOptions");
+        _heightHint = this.FindControl<Control>("HeightHint");
 
         _defaultDurationRadios = new[]
         {
@@ -57,6 +62,11 @@ public partial class SettingsWindow : Window
             (this.FindControl<RadioButton>("HeightThin")!,   BarHeight.Thin),
             (this.FindControl<RadioButton>("HeightNormal")!, BarHeight.Normal),
             (this.FindControl<RadioButton>("HeightThick")!,  BarHeight.Thick),
+        };
+        _positionRadios = new[]
+        {
+            (this.FindControl<RadioButton>("PositionTop")!,    BarPosition.Top),
+            (this.FindControl<RadioButton>("PositionBottom")!, BarPosition.Bottom),
         };
 
         if (_versionText is not null)
@@ -121,6 +131,13 @@ public partial class SettingsWindow : Window
             SyncRadioGroup(_defaultDurationRadios, s.DefaultDuration);
             SyncRadioGroup(_colorRadios, s.Color);
             SyncRadioGroup(_heightRadios, s.Height);
+            SyncRadioGroup(_positionRadios, s.Position);
+
+            // Height is driven by the taskbar in Bottom mode, so the manual
+            // height options don't apply there — disable them and explain why.
+            var bottom = s.Position == BarPosition.Bottom;
+            if (_heightOptions is not null) _heightOptions.IsEnabled = !bottom;
+            if (_heightHint is not null) _heightHint.IsVisible = bottom;
         }
         finally
         {
@@ -165,6 +182,9 @@ public partial class SettingsWindow : Window
     private void OnHeight2(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { Height = BarHeight.Thin });
     private void OnHeight3(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { Height = BarHeight.Normal });
     private void OnHeight4(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { Height = BarHeight.Thick });
+
+    private void OnPositionTop(object? s, Avalonia.Interactivity.RoutedEventArgs e)    => Update(x => x with { Position = BarPosition.Top });
+    private void OnPositionBottom(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { Position = BarPosition.Bottom });
 
     private void OnOpacityChanged(object? s, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
     {

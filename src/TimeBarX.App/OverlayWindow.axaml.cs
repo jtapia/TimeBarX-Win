@@ -47,14 +47,79 @@ public partial class OverlayWindow : Window
         if (_screen is null) return;
         var bounds = _screen.Bounds;
         var scaling = _screen.Scaling > 0 ? _screen.Scaling : 1.0;
-        var barHeight = (int)(_boundController?.Settings.Height ?? BarHeight.Normal);
+        var position = _boundController?.Settings.Position ?? BarPosition.Top;
 
         Width = bounds.Width / scaling;
-        Height = barHeight;
-        Position = new PixelPoint(bounds.X, bounds.Y);
 
-        if (_progressBar is not null) _progressBar.Height = barHeight;
+        int yPx;       // window top in physical pixels
+        int heightDip; // window/bar height in DIPs
+
+        if (position == BarPosition.Bottom)
+        {
+            // Bottom mode: cover the taskbar so the progress color appears to
+            // "fill" it. Height matches the taskbar; the window sits over it.
+            // Click-through (WS_EX_TRANSPARENT) keeps the taskbar buttons working.
+            // Falls back to the configured bar height if no taskbar is found.
+            var taskbarPx = TaskbarHeightOnScreen(bounds);
+            var heightPx = taskbarPx > 0
+                ? taskbarPx
+                : (int)((int)(_boundController?.Settings.Height ?? BarHeight.Normal) * scaling);
+            heightDip = (int)Math.Round(heightPx / scaling);
+            yPx = bounds.Y + bounds.Height - heightPx;
+        }
+        else
+        {
+            heightDip = (int)(_boundController?.Settings.Height ?? BarHeight.Normal);
+            yPx = bounds.Y;
+        }
+
+        Height = heightDip;
+        Position = new PixelPoint(bounds.X, yPx);
+
+        if (_progressBar is not null) _progressBar.Height = heightDip;
         UpdateProgressBarWidth();
+
+        // In bottom/taskbar-fill mode we sit over the (topmost) taskbar, so nudge
+        // ourselves back above it. OverlayPolicy keeps re-asserting this each tick.
+        if (position == BarPosition.Bottom) ReassertAboveTaskbar();
+    }
+
+    private void ReassertAboveTaskbar()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        var handle = TryGetPlatformHandle()?.Handle;
+        if (handle is null || handle == IntPtr.Zero) return;
+        NativeMethods.SetTopmost(handle.Value);
+    }
+
+    /// <summary>
+    /// Height (physical px) of the Windows taskbar on the monitor that contains
+    /// <paramref name="screenBounds"/>, or 0 if not on Windows / not found / the
+    /// taskbar isn't a visible bottom taskbar on this monitor (incl. auto-hidden).
+    /// Callers fall back to the configured bar height when this returns 0.
+    /// </summary>
+    private static int TaskbarHeightOnScreen(PixelRect screenBounds)
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return 0;
+
+        var tray = FindWindow("Shell_TrayWnd", null);
+        if (tray == IntPtr.Zero) return 0;
+        if (!NativeMethods.GetWindowRect(tray, out var r)) return 0;
+
+        // Only treat it as "this monitor's bottom taskbar" if it overlaps this
+        // screen horizontally and sits at/near the bottom edge.
+        var screenBottom = screenBounds.Y + screenBounds.Height;
+        var overlapsX = r.right > screenBounds.X && r.left < screenBounds.X + screenBounds.Width;
+        var atBottom = r.bottom >= screenBottom - 4;
+        if (!overlapsX || !atBottom) return 0;
+
+        // An auto-hidden taskbar keeps its window but slides off-screen, so its
+        // visible portion within the monitor is ~0px. Measure only the part that
+        // actually overlaps the screen; if that's negligible, treat it as absent
+        // and let the caller fall back to the configured bar height.
+        var visibleTop = Math.Max(r.top, screenBounds.Y);
+        var visibleHeight = screenBottom - visibleTop;
+        return visibleHeight > 2 ? visibleHeight : 0;
     }
 
     protected override void OnOpened(EventArgs e)
@@ -201,4 +266,7 @@ public partial class OverlayWindow : Window
 
     [DllImport("user32.dll")]
     private static extern bool SetLayeredWindowAttributes(IntPtr hWnd, uint crKey, byte bAlpha, uint dwFlags);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr FindWindow(string? lpClassName, string? lpWindowName);
 }
