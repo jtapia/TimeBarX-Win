@@ -8,11 +8,14 @@
         CanResize="False"
         SizeToContent="WidthAndHeight"
         Width="420"
+        Background="Transparent"
+        TransparencyLevelHint="Transparent"
         Title="TimeBarX — Quick Timer">
-    <!-- No explicit colors: inherit Avalonia FluentTheme so the window follows
-         the system light/dark theme. The Border just supplies rounding + a
-         subtle 1px outline since the window is undecorated. -->
+    <!-- Window is transparent so only this rounded Border paints — otherwise the
+         square window background pokes out behind the corners. The Border still
+         inherits theme colors so it follows system light/dark. -->
     <Border CornerRadius="8"
+            Margin="1"
             Padding="16"
             BorderThickness="1"
             Background="{DynamicResource SystemRegionBrush}"

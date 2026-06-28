@@ -66,11 +66,14 @@ public sealed class OverlayPolicy : IDisposable
 
         var settings = _controller.Settings;
         var foreground = GetForegroundWindow();
-        var foregroundProcess = ProcessNameForWindow(foreground);
+
+        // Only resolve the foreground process (an OpenProcess handle, once/sec
+        // while visible) when there's actually a hide-list to match against.
+        var hideList = settings.HideForProcesses;
+        var foregroundProcess = hideList is { Count: > 0 } ? ProcessNameForWindow(foreground) : null;
 
         var hideForProcess = !string.IsNullOrEmpty(foregroundProcess)
-            && settings.HideForProcesses is { } list
-            && list.Any(p => string.Equals(p, foregroundProcess, StringComparison.OrdinalIgnoreCase));
+            && hideList!.Any(p => string.Equals(p, foregroundProcess, StringComparison.OrdinalIgnoreCase));
 
         var foregroundIsFullscreen = IsExclusiveFullscreen(foreground, _overlay);
 

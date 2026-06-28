@@ -67,6 +67,11 @@ public partial class OverlayWindow : Window
 
     private void StartPolicyIfReady()
     {
+        // Called from both OnDataContextChanged (fires when DataContext is set,
+        // before Show) and OnOpened. The first caller to find a bound controller
+        // wins; the null/already-set guard makes the duplicate call a no-op. The
+        // policy tolerates being created pre-open — its tick early-returns until
+        // the platform handle exists.
         if (_policy is not null || _boundController is null) return;
         _policy = new OverlayPolicy(this, _boundController);
     }

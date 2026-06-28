@@ -19,14 +19,12 @@ public partial class SettingsWindow : Window
     private TextBlock? _versionText;
     private TextBlock? _updateText;
 
-    // Radio groups — indexed in the order they appear in XAML so SyncFromSettings
-    // can mark the active option without N near-identical field accesses.
-    private RadioButton[]? _defaultDurationRadios;
-    private TimeSpan[]? _defaultDurationValues;
-    private RadioButton[]? _colorRadios;
-    private BarColor[]? _colorValues;
-    private RadioButton[]? _heightRadios;
-    private BarHeight[]? _heightValues;
+    // Radio groups paired with their setting value, so SyncFromSettings can mark
+    // the active option. Pairing radio+value at one site (vs. parallel arrays)
+    // keeps them from silently drifting if the XAML order ever changes.
+    private (RadioButton Radio, TimeSpan Value)[]? _defaultDurationRadios;
+    private (RadioButton Radio, BarColor Value)[]? _colorRadios;
+    private (RadioButton Radio, BarHeight Value)[]? _heightRadios;
 
     public SettingsWindow()
     {
@@ -41,35 +39,25 @@ public partial class SettingsWindow : Window
 
         _defaultDurationRadios = new[]
         {
-            this.FindControl<RadioButton>("Default15")!,
-            this.FindControl<RadioButton>("Default25")!,
-            this.FindControl<RadioButton>("Default50")!,
-            this.FindControl<RadioButton>("Default90")!,
-        };
-        _defaultDurationValues = new[]
-        {
-            TimeSpan.FromMinutes(15), TimeSpan.FromMinutes(25),
-            TimeSpan.FromMinutes(50), TimeSpan.FromMinutes(90),
+            (this.FindControl<RadioButton>("Default15")!, TimeSpan.FromMinutes(15)),
+            (this.FindControl<RadioButton>("Default25")!, TimeSpan.FromMinutes(25)),
+            (this.FindControl<RadioButton>("Default50")!, TimeSpan.FromMinutes(50)),
+            (this.FindControl<RadioButton>("Default90")!, TimeSpan.FromMinutes(90)),
         };
         _colorRadios = new[]
         {
-            this.FindControl<RadioButton>("ColorAccent")!,
-            this.FindControl<RadioButton>("ColorBlue")!,
-            this.FindControl<RadioButton>("ColorPurple")!,
-            this.FindControl<RadioButton>("ColorGreen")!,
-            this.FindControl<RadioButton>("ColorRed")!,
-        };
-        _colorValues = new[]
-        {
-            BarColor.Accent, BarColor.Blue, BarColor.Purple, BarColor.Green, BarColor.Red,
+            (this.FindControl<RadioButton>("ColorAccent")!, BarColor.Accent),
+            (this.FindControl<RadioButton>("ColorBlue")!,   BarColor.Blue),
+            (this.FindControl<RadioButton>("ColorPurple")!, BarColor.Purple),
+            (this.FindControl<RadioButton>("ColorGreen")!,  BarColor.Green),
+            (this.FindControl<RadioButton>("ColorRed")!,    BarColor.Red),
         };
         _heightRadios = new[]
         {
-            this.FindControl<RadioButton>("HeightThin")!,
-            this.FindControl<RadioButton>("HeightNormal")!,
-            this.FindControl<RadioButton>("HeightThick")!,
+            (this.FindControl<RadioButton>("HeightThin")!,   BarHeight.Thin),
+            (this.FindControl<RadioButton>("HeightNormal")!, BarHeight.Normal),
+            (this.FindControl<RadioButton>("HeightThick")!,  BarHeight.Thick),
         };
-        _heightValues = new[] { BarHeight.Thin, BarHeight.Normal, BarHeight.Thick };
 
         if (_versionText is not null)
         {
@@ -130,9 +118,9 @@ public partial class SettingsWindow : Window
             if (_alwaysAboveWarning is not null) _alwaysAboveWarning.IsVisible = s.AlwaysAboveEverything;
             if (_opacitySlider is not null) _opacitySlider.Value = s.Opacity;
 
-            SyncRadioGroup(_defaultDurationRadios, _defaultDurationValues, s.DefaultDuration);
-            SyncRadioGroup(_colorRadios, _colorValues, s.Color);
-            SyncRadioGroup(_heightRadios, _heightValues, s.Height);
+            SyncRadioGroup(_defaultDurationRadios, s.DefaultDuration);
+            SyncRadioGroup(_colorRadios, s.Color);
+            SyncRadioGroup(_heightRadios, s.Height);
         }
         finally
         {
@@ -140,13 +128,13 @@ public partial class SettingsWindow : Window
         }
     }
 
-    private static void SyncRadioGroup<T>(RadioButton[]? radios, T[]? values, T current)
+    private static void SyncRadioGroup<T>((RadioButton Radio, T Value)[]? group, T current)
     {
-        if (radios is null || values is null) return;
+        if (group is null) return;
         var cmp = System.Collections.Generic.EqualityComparer<T>.Default;
-        for (var i = 0; i < radios.Length; i++)
+        foreach (var (radio, value) in group)
         {
-            radios[i].IsChecked = cmp.Equals(values[i], current);
+            radio.IsChecked = cmp.Equals(value, current);
         }
     }
 
