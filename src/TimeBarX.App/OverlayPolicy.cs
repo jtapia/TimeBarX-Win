@@ -123,7 +123,7 @@ public sealed class OverlayPolicy : IDisposable
         var needsTopmost = settings.AlwaysAboveEverything || bottomMode;
         if (needsTopmost && !shouldHide && !foregroundIsFullscreen)
         {
-            ReassertTopmost(handle.Value);
+            NativeMethods.SetTopmost(handle.Value);
         }
     }
 
@@ -204,8 +204,6 @@ public sealed class OverlayPolicy : IDisposable
     }
 
     // ---- Win32 ----
-
-    private static void ReassertTopmost(IntPtr hwnd) => NativeMethods.SetTopmost(hwnd);
 
     [DllImport("user32.dll")]
     private static extern IntPtr GetForegroundWindow();

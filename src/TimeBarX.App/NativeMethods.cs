@@ -16,9 +16,16 @@ internal static class NativeMethods
     public const uint SWP_NOMOVE = 0x0002;
     public const uint SWP_NOACTIVATE = 0x0010;
 
-    /// <summary>SetWindowPos with the no-move/size/activate flags used to (re)assert top-most.</summary>
+    /// <summary>
+    /// SetWindowPos with the no-move/size/activate flags used to (re)assert top-most.
+    /// Safe to call from anywhere: no-ops outside Windows and for a zero handle, so
+    /// callers don't need to repeat the platform/handle guards.
+    /// </summary>
     public static void SetTopmost(IntPtr hwnd)
-        => SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+    {
+        if (hwnd == IntPtr.Zero || !RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
+        SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+    }
 
     [DllImport("user32.dll")]
     public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int x, int y, int cx, int cy, uint flags);

@@ -47,7 +47,8 @@ public sealed record AppSettings(
         PlayCompletionSound: false,
         DefaultDuration: TimeSpan.FromMinutes(25),
         AlwaysAboveEverything: false,
-        HideForProcesses: DefaultHideList);
+        HideForProcesses: DefaultHideList,
+        Position: BarPosition.Top);
 
     public AppSettings WithOpacity(double opacity)
     {

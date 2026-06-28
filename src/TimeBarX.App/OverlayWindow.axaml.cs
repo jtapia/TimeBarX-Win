@@ -93,15 +93,11 @@ public partial class OverlayWindow : Window
 
         // Sitting over the top-most taskbar — nudge above it now; the policy
         // keeps re-asserting on its fast cadence while in Bottom mode.
-        if (position == BarPosition.Bottom) ReassertAboveTaskbar();
-    }
-
-    private void ReassertAboveTaskbar()
-    {
-        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return;
-        var handle = TryGetPlatformHandle()?.Handle;
-        if (handle is null || handle == IntPtr.Zero) return;
-        NativeMethods.SetTopmost(handle.Value);
+        // SetTopmost is platform/handle-guarded, so a null handle is a no-op.
+        if (position == BarPosition.Bottom)
+        {
+            NativeMethods.SetTopmost(TryGetPlatformHandle()?.Handle ?? IntPtr.Zero);
+        }
     }
 
     /// <summary>
