@@ -70,17 +70,14 @@ public partial class OverlayWindow : Window
             // to keep it from being covered. Click-through (WS_EX_TRANSPARENT)
             // keeps the taskbar buttons working underneath. Falls back to the
             // configured height (above the taskbar) if no bottom taskbar is found.
+            //
+            // Derive yPx from the SAME physical height we round the DIP height
+            // from, so on fractional scaling (125/150%) the bar lines up flush
+            // with the taskbar instead of leaving a 1px seam.
             var taskbarPx = TaskbarHeightOnScreen(bounds);
-            if (taskbarPx > 0)
-            {
-                heightDip = (int)Math.Round(taskbarPx / scaling);
-                yPx = bounds.Y + bounds.Height - taskbarPx;
-            }
-            else
-            {
-                heightDip = configHeightDip;
-                yPx = bounds.Y + bounds.Height - (int)(configHeightDip * scaling);
-            }
+            var heightPx = taskbarPx > 0 ? taskbarPx : (int)Math.Round(configHeightDip * scaling);
+            heightDip = (int)Math.Round(heightPx / scaling);
+            yPx = bounds.Y + bounds.Height - heightPx;
         }
         else
         {

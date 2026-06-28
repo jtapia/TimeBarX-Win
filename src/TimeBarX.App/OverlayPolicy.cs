@@ -10,14 +10,16 @@ using TimeBarX.Core;
 namespace TimeBarX.App;
 
 /// <summary>
-/// Polls once/sec while the bar is visible and adjusts overlay visibility/Z-order
-/// on Windows:
+/// Polls while the bar is visible (1s normally; 100ms in Bottom mode, which
+/// overlays the top-most taskbar and must keep reclaiming top Z-order) and
+/// adjusts overlay visibility/Z-order on Windows:
 ///   - hides the overlay when the foreground window's process is in the configured
 ///     exclusion list (e.g. video players)
 ///   - in Top mode, hides for an exclusive-fullscreen app so games/video aren't
-///     covered (shell surfaces like the Start menu/Search are excluded); this
-///     check is skipped entirely in Bottom mode, where the bar is fused to the
-///     taskbar that a real fullscreen app already hides
+///     covered (shell surfaces like the Start menu/Search are excluded). This
+///     check is skipped in Bottom mode: the bounds heuristic false-positives on
+///     shell surfaces (Start/Search) and maximized windows, which would make the
+///     taskbar-fill bar flicker away.
 ///   - reasserts HWND_TOPMOST when it must out-rank other top-most windows:
 ///     "always above everything" mode, or Bottom mode (sitting over the taskbar)
 /// All cross-platform no-ops outside Windows.
@@ -99,10 +101,9 @@ public sealed class OverlayPolicy : IDisposable
             && hideList!.Any(p => string.Equals(p, foregroundProcess, StringComparison.OrdinalIgnoreCase));
 
         // The fullscreen-hide only serves Top mode (get out of a game/video's way).
-        // In Bottom mode the bar is fused to the taskbar — a true exclusive-fullscreen
-        // app hides the taskbar itself, so the OS already covers us. Running the
-        // heuristic there only produces false positives (Start menu, Search, maximized
-        // windows, "app bars") that make the bar flicker away. So skip it in Bottom mode.
+        // Skip it in Bottom mode: the bounds heuristic false-positives on shell
+        // surfaces (Start menu, Search) and maximized windows, which would make
+        // the taskbar-fill bar flicker away on routine interactions.
         var foregroundIsFullscreen = !bottomMode && IsExclusiveFullscreen(foreground, foregroundProcess, _overlay);
 
         // Default behavior (PLAN.md Mode 1): hide for known full-screen / video apps.
