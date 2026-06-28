@@ -24,7 +24,11 @@ namespace TimeBarX.App;
 /// </summary>
 public sealed class OverlayPolicy : IDisposable
 {
-    private static readonly TimeSpan Cadence = TimeSpan.FromSeconds(1);
+    // Slow cadence is enough for the hide/show heuristics. Bottom mode overlays
+    // the top-most taskbar and must out-race Windows reclaiming top Z-order when
+    // Start/Search open, so it polls fast.
+    private static readonly TimeSpan SlowCadence = TimeSpan.FromSeconds(1);
+    private static readonly TimeSpan FastCadence = TimeSpan.FromMilliseconds(100);
 
     private readonly Window _overlay;
     private readonly TrayController _controller;
@@ -34,19 +38,22 @@ public sealed class OverlayPolicy : IDisposable
     {
         _overlay = overlay;
         _controller = controller;
-        _timer = new DispatcherTimer { Interval = Cadence };
+        _timer = new DispatcherTimer { Interval = SlowCadence };
         _timer.Tick += (_, _) => Tick();
 
         // The policy only has work to do while a timer is active (the bar is
         // visible). Poll just then — otherwise we'd call GetForegroundWindow +
         // Process.GetProcessById once/sec/monitor forever, even when idle.
+        // Re-evaluate on settings changes too, since Position drives the cadence.
         _controller.PropertyChanged += OnControllerPropertyChanged;
+        _controller.SettingsChanged += SyncTimerToVisibility;
         SyncTimerToVisibility();
     }
 
     public void Dispose()
     {
         _controller.PropertyChanged -= OnControllerPropertyChanged;
+        _controller.SettingsChanged -= SyncTimerToVisibility;
         _timer.Stop();
     }
 
@@ -57,8 +64,16 @@ public sealed class OverlayPolicy : IDisposable
 
     private void SyncTimerToVisibility()
     {
-        if (_controller.IsBarVisible) _timer.Start();
-        else _timer.Stop();
+        if (!_controller.IsBarVisible)
+        {
+            _timer.Stop();
+            return;
+        }
+
+        // Bottom mode needs the fast cadence to keep out-ranking the taskbar.
+        var wanted = _controller.Settings.Position == BarPosition.Bottom ? FastCadence : SlowCadence;
+        if (_timer.Interval != wanted) _timer.Interval = wanted;
+        _timer.Start();
     }
 
     private void Tick()
@@ -100,10 +115,10 @@ public sealed class OverlayPolicy : IDisposable
         var wantVisible = !shouldHide;
         if (_overlay.IsVisible != wantVisible) _overlay.IsVisible = wantVisible;
 
-        // Reassert top-most when we need to stay above other top-most windows:
+        // Reassert top-most when we must out-rank other top-most windows:
         //  - experimental "always above everything" mode, or
-        //  - bottom/taskbar-fill mode, where we sit over the (top-most) taskbar
-        //    and must out-rank it on every focus change.
+        //  - Bottom mode, where we overlay the top-most taskbar and have to win
+        //    the Z-order back each time Start/Search/etc. bring it forward.
         var needsTopmost = settings.AlwaysAboveEverything || bottomMode;
         if (needsTopmost && !shouldHide && !foregroundIsFullscreen)
         {

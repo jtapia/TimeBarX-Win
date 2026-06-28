@@ -18,8 +18,6 @@ public partial class SettingsWindow : Window
     private Slider? _opacitySlider;
     private TextBlock? _versionText;
     private TextBlock? _updateText;
-    private Control? _heightOptions;
-    private Control? _heightHint;
 
     // Radio groups paired with their setting value, so SyncFromSettings can mark
     // the active option. Pairing radio+value at one site (vs. parallel arrays)
@@ -39,8 +37,6 @@ public partial class SettingsWindow : Window
         _opacitySlider = this.FindControl<Slider>("OpacitySlider");
         _versionText = this.FindControl<TextBlock>("VersionText");
         _updateText = this.FindControl<TextBlock>("UpdateText");
-        _heightOptions = this.FindControl<Control>("HeightOptions");
-        _heightHint = this.FindControl<Control>("HeightHint");
 
         _defaultDurationRadios = new[]
         {
@@ -132,12 +128,6 @@ public partial class SettingsWindow : Window
             SyncRadioGroup(_colorRadios, s.Color);
             SyncRadioGroup(_heightRadios, s.Height);
             SyncRadioGroup(_positionRadios, s.Position);
-
-            // Height is driven by the taskbar in Bottom mode, so the manual
-            // height options don't apply there — disable them and explain why.
-            var bottom = s.Position == BarPosition.Bottom;
-            if (_heightOptions is not null) _heightOptions.IsEnabled = !bottom;
-            if (_heightHint is not null) _heightHint.IsVisible = bottom;
         }
         finally
         {

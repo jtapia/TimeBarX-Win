@@ -49,16 +49,11 @@
                 </StackPanel>
                 <Separator />
                 <TextBlock Text="Height" FontWeight="SemiBold" />
-                <StackPanel Name="HeightOptions" Orientation="Horizontal" Spacing="8">
+                <StackPanel Orientation="Horizontal" Spacing="8">
                     <RadioButton Name="HeightThin"   GroupName="Height" Content="Thin"   Click="OnHeight2" />
                     <RadioButton Name="HeightNormal" GroupName="Height" Content="Medium" Click="OnHeight3" />
                     <RadioButton Name="HeightThick"  GroupName="Height" Content="Large"  Click="OnHeight4" />
                 </StackPanel>
-                <TextBlock Name="HeightHint"
-                           Text="Height matches the taskbar when position is Bottom."
-                           Opacity="0.55"
-                           FontSize="11"
-                           IsVisible="False" />
                 <Separator />
                 <TextBlock Text="Position" FontWeight="SemiBold" />
                 <StackPanel Orientation="Horizontal" Spacing="8">

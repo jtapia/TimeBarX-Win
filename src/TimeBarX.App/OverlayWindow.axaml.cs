@@ -27,6 +27,12 @@ public partial class OverlayWindow : Window
     private Rgb? _lastBarRgb;
     private SolidColorBrush? _barBrush;
 
+    // Authoritative bar width (DIPs) from the last layout. We compute progress
+    // width from this rather than the window's Width property, which can read
+    // NaN/stale mid-relayout (e.g. when switching position) — NaN width makes
+    // Avalonia stretch the Rectangle to fill, colorizing the whole bar.
+    private double _barWidth;
+
     public OverlayWindow()
     {
         InitializeComponent();
@@ -48,28 +54,37 @@ public partial class OverlayWindow : Window
         var bounds = _screen.Bounds;
         var scaling = _screen.Scaling > 0 ? _screen.Scaling : 1.0;
         var position = _boundController?.Settings.Position ?? BarPosition.Top;
+        var configHeightDip = (int)(_boundController?.Settings.Height ?? BarHeight.Normal);
 
-        Width = bounds.Width / scaling;
+        _barWidth = bounds.Width / scaling;
+        Width = _barWidth;
 
         int yPx;       // window top in physical pixels
         int heightDip; // window/bar height in DIPs
 
         if (position == BarPosition.Bottom)
         {
-            // Bottom mode: cover the taskbar so the progress color appears to
-            // "fill" it. Height matches the taskbar; the window sits over it.
-            // Click-through (WS_EX_TRANSPARENT) keeps the taskbar buttons working.
-            // Falls back to the configured bar height if no taskbar is found.
+            // Bottom mode: overlay the taskbar so the progress color fills it,
+            // sized to the taskbar's height. The window sits ON TOP of the
+            // (top-most) taskbar; OverlayPolicy reasserts top-most aggressively
+            // to keep it from being covered. Click-through (WS_EX_TRANSPARENT)
+            // keeps the taskbar buttons working underneath. Falls back to the
+            // configured height (above the taskbar) if no bottom taskbar is found.
             var taskbarPx = TaskbarHeightOnScreen(bounds);
-            var heightPx = taskbarPx > 0
-                ? taskbarPx
-                : (int)((int)(_boundController?.Settings.Height ?? BarHeight.Normal) * scaling);
-            heightDip = (int)Math.Round(heightPx / scaling);
-            yPx = bounds.Y + bounds.Height - heightPx;
+            if (taskbarPx > 0)
+            {
+                heightDip = (int)Math.Round(taskbarPx / scaling);
+                yPx = bounds.Y + bounds.Height - taskbarPx;
+            }
+            else
+            {
+                heightDip = configHeightDip;
+                yPx = bounds.Y + bounds.Height - (int)(configHeightDip * scaling);
+            }
         }
         else
         {
-            heightDip = (int)(_boundController?.Settings.Height ?? BarHeight.Normal);
+            heightDip = configHeightDip;
             yPx = bounds.Y;
         }
 
@@ -79,8 +94,8 @@ public partial class OverlayWindow : Window
         if (_progressBar is not null) _progressBar.Height = heightDip;
         UpdateProgressBarWidth();
 
-        // In bottom/taskbar-fill mode we sit over the (topmost) taskbar, so nudge
-        // ourselves back above it. OverlayPolicy keeps re-asserting this each tick.
+        // Sitting over the top-most taskbar — nudge above it now; the policy
+        // keeps re-asserting on its fast cadence while in Bottom mode.
         if (position == BarPosition.Bottom) ReassertAboveTaskbar();
     }
 
@@ -106,17 +121,13 @@ public partial class OverlayWindow : Window
         if (tray == IntPtr.Zero) return 0;
         if (!NativeMethods.GetWindowRect(tray, out var r)) return 0;
 
-        // Only treat it as "this monitor's bottom taskbar" if it overlaps this
-        // screen horizontally and sits at/near the bottom edge.
         var screenBottom = screenBounds.Y + screenBounds.Height;
         var overlapsX = r.right > screenBounds.X && r.left < screenBounds.X + screenBounds.Width;
         var atBottom = r.bottom >= screenBottom - 4;
         if (!overlapsX || !atBottom) return 0;
 
-        // An auto-hidden taskbar keeps its window but slides off-screen, so its
-        // visible portion within the monitor is ~0px. Measure only the part that
-        // actually overlaps the screen; if that's negligible, treat it as absent
-        // and let the caller fall back to the configured bar height.
+        // Auto-hidden taskbars slide off-screen: measure only the visible overlap
+        // and treat a negligible sliver as "absent" so we fall back to the bar height.
         var visibleTop = Math.Max(r.top, screenBounds.Y);
         var visibleHeight = screenBottom - visibleTop;
         return visibleHeight > 2 ? visibleHeight : 0;
@@ -226,10 +237,11 @@ public partial class OverlayWindow : Window
     private void UpdateProgressBarWidth()
     {
         if (_progressBar is null) return;
+        if (_barWidth <= 0 || double.IsNaN(_barWidth)) return; // not laid out yet
         var progress = _boundController?.Progress ?? 0.0;
         if (progress < 0) progress = 0;
         if (progress > 1) progress = 1;
-        _progressBar.Width = Width * progress;
+        _progressBar.Width = _barWidth * progress;
     }
 
     private void ApplyClickThrough()
