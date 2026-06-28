@@ -12,10 +12,10 @@
             <StackPanel Margin="12" Spacing="14">
                 <TextBlock Text="Default duration" FontWeight="SemiBold" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <RadioButton GroupName="DefaultDuration" Content="15 min" Click="OnDefault15Clicked" />
-                    <RadioButton GroupName="DefaultDuration" Content="25 min" Click="OnDefault25Clicked" />
-                    <RadioButton GroupName="DefaultDuration" Content="50 min" Click="OnDefault50Clicked" />
-                    <RadioButton GroupName="DefaultDuration" Content="90 min" Click="OnDefault90Clicked" />
+                    <RadioButton Name="Default15" GroupName="DefaultDuration" Content="15 min" Click="OnDefault15Clicked" />
+                    <RadioButton Name="Default25" GroupName="DefaultDuration" Content="25 min" Click="OnDefault25Clicked" />
+                    <RadioButton Name="Default50" GroupName="DefaultDuration" Content="50 min" Click="OnDefault50Clicked" />
+                    <RadioButton Name="Default90" GroupName="DefaultDuration" Content="90 min" Click="OnDefault90Clicked" />
                 </StackPanel>
                 <Separator />
                 <CheckBox Name="SoundCheck" Content="Play sound when timer completes" Click="OnSoundCheckClicked" />
@@ -41,18 +41,18 @@
             <StackPanel Margin="12" Spacing="14">
                 <TextBlock Text="Color" FontWeight="SemiBold" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <RadioButton GroupName="Color" Content="Accent" Click="OnColorAccent" />
-                    <RadioButton GroupName="Color" Content="Blue" Click="OnColorBlue" />
-                    <RadioButton GroupName="Color" Content="Purple" Click="OnColorPurple" />
-                    <RadioButton GroupName="Color" Content="Green" Click="OnColorGreen" />
-                    <RadioButton GroupName="Color" Content="Red" Click="OnColorRed" />
+                    <RadioButton Name="ColorAccent" GroupName="Color" Content="Accent" Click="OnColorAccent" />
+                    <RadioButton Name="ColorBlue"   GroupName="Color" Content="Blue"   Click="OnColorBlue" />
+                    <RadioButton Name="ColorPurple" GroupName="Color" Content="Purple" Click="OnColorPurple" />
+                    <RadioButton Name="ColorGreen"  GroupName="Color" Content="Green"  Click="OnColorGreen" />
+                    <RadioButton Name="ColorRed"    GroupName="Color" Content="Red"    Click="OnColorRed" />
                 </StackPanel>
                 <Separator />
                 <TextBlock Text="Height" FontWeight="SemiBold" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
-                    <RadioButton GroupName="Height" Content="5 px" Click="OnHeight2" />
-                    <RadioButton GroupName="Height" Content="7 px" Click="OnHeight3" />
-                    <RadioButton GroupName="Height" Content="10 px" Click="OnHeight4" />
+                    <RadioButton Name="HeightThin"   GroupName="Height" Content="5 px"  Click="OnHeight2" />
+                    <RadioButton Name="HeightNormal" GroupName="Height" Content="7 px"  Click="OnHeight3" />
+                    <RadioButton Name="HeightThick"  GroupName="Height" Content="10 px" Click="OnHeight4" />
                 </StackPanel>
                 <Separator />
                 <TextBlock Text="Opacity" FontWeight="SemiBold" />

@@ -3,29 +3,31 @@
         x:Class="TimeBarX.App.QuickInputWindow"
         WindowStartupLocation="CenterScreen"
         WindowDecorations="None"
-        Background="#1F2937"
         Topmost="True"
         ShowInTaskbar="False"
         CanResize="False"
         SizeToContent="WidthAndHeight"
         Width="420"
         Title="TimeBarX — Quick Timer">
-    <Border CornerRadius="10" Padding="16" Background="#1F2937"
-            BorderBrush="#374151" BorderThickness="1">
+    <!-- No explicit colors: inherit Avalonia FluentTheme so the window follows
+         the system light/dark theme. The Border just supplies rounding + a
+         subtle 1px outline since the window is undecorated. -->
+    <Border CornerRadius="8"
+            Padding="16"
+            BorderThickness="1"
+            Background="{DynamicResource SystemRegionBrush}"
+            BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
         <StackPanel Spacing="8">
             <TextBlock Text="Start a timer"
-                       Foreground="#9CA3AF"
+                       Opacity="0.7"
                        FontSize="12" />
             <TextBox Name="InputBox"
                      FontSize="20"
-                     Background="Transparent"
-                     Foreground="#F9FAFB"
-                     BorderThickness="0"
                      PlaceholderText="25 min, 1:30, 2h review PR…"
                      KeyDown="OnKeyDown" />
             <TextBlock Name="HintText"
                        Text="Enter to start  ·  Esc to cancel"
-                       Foreground="#6B7280"
+                       Opacity="0.55"
                        FontSize="11" />
         </StackPanel>
     </Border>

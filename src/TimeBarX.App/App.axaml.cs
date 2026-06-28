@@ -88,6 +88,9 @@ public partial class App : Application
             case UriCommandKind.Start:
                 if (cmd.Duration is { } d)
                     Controller.StartCustom(d, cmd.Preset ?? string.Empty, cmd.Label);
+                else
+                    // Bare `timebarx://start` honors the configured default duration.
+                    Controller.Start();
                 break;
             case UriCommandKind.Pause:
                 Controller.Pause();

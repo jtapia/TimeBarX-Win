@@ -3,13 +3,14 @@ bin/
 obj/
 artifacts/
 
-# Generated icons (regenerated from assets/icon.svg)
+# Generated icons (regenerated from assets/icon-master.png)
 assets/icon.ico
 
 # IDE / editor
 .vs/
 .idea/
 *.user
+.serena/
 
 # OS cruft
 .DS_Store
