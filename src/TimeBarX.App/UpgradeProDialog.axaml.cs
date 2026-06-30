@@ -17,6 +17,8 @@ public partial class UpgradeProDialog : Window
 {
     private readonly IEntitlements _entitlements;
     private TextBlock? _status;
+    private Control? _licensePanel;
+    private TextBox? _licenseInput;
 
     /// <summary>
     /// Parameterless ctor only exists so the Avalonia XAML loader can resolve
@@ -30,6 +32,8 @@ public partial class UpgradeProDialog : Window
         InitializeComponent();
         _entitlements = entitlements;
         _status = this.FindControl<TextBlock>("StatusText");
+        _licensePanel = this.FindControl<Control>("LicensePanel");
+        _licenseInput = this.FindControl<TextBox>("LicenseInput");
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
@@ -82,6 +86,29 @@ public partial class UpgradeProDialog : Window
 #endif
         await System.Threading.Tasks.Task.CompletedTask;
         ShowStatus("Restore is only available in the Microsoft Store build.");
+    }
+
+    private void OnShowLicenseClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (_licensePanel is null) return;
+        _licensePanel.IsVisible = true;
+        _licenseInput?.Focus();
+    }
+
+    private void OnActivateClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var key = _licenseInput?.Text ?? string.Empty;
+        if (Avalonia.Application.Current is not App app || app.LicenseKey is null)
+        {
+            ShowStatus("License activation isn't available in this build.");
+            return;
+        }
+        if (app.LicenseKey.Activate(key))
+        {
+            Close();
+            return;
+        }
+        ShowStatus("That key didn't verify. Check for typos or paste again from your purchase email.");
     }
 
     private void ShowStatus(string text)

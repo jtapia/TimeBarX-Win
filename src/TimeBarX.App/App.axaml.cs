@@ -11,24 +11,29 @@ namespace TimeBarX.App;
 
 public partial class App : Application
 {
-    // Pick the entitlement source per target:
-    //   - Store build (net10.0-windows10.0.19041.0): real StoreContext via
-    //     StoreEntitlements. Pro state is queried from the Microsoft Store on
-    //     launch and refreshed on Settings open.
-    //   - Cross-platform / dev build (plain net10.0): MockEntitlements that
-    //     reads TIMEBARX_PRO=1 from the env. Lets macOS dev box keep building.
-    public TrayController Controller { get; } = new(
-        new TimeBarX.Core.JsonTimerStore(),
-        new TimeBarX.Core.JsonSettingsStore(),
-        CreateEntitlements());
+    // Pick the entitlement sources per target. Two channels grant Pro and they
+    // compose: a user can buy either through the Store or via a direct
+    // (Gumroad) license key, and switching install channels keeps their unlock.
+    //   - Store build (net10.0-windows10.0.19041.0):  Store OR License-key
+    //   - Cross-platform / dev build (plain net10.0): Mock OR License-key
+    //     (Mock honors TIMEBARX_PRO=1 for macOS dev / CI.)
+    public TimeBarX.App.Store.LicenseKeyEntitlements LicenseKey { get; } = new();
 
-    private static TimeBarX.Core.IEntitlements CreateEntitlements()
+    public TrayController Controller { get; }
+
+    public App()
     {
+        TimeBarX.Core.IEntitlements primary;
 #if WINDOWS
-        return new TimeBarX.App.Store.StoreEntitlements();
+        primary = new TimeBarX.App.Store.StoreEntitlements();
 #else
-        return new TimeBarX.App.Store.MockEntitlements();
+        primary = new TimeBarX.App.Store.MockEntitlements();
 #endif
+        var composed = new TimeBarX.App.Store.OrEntitlements(primary, LicenseKey);
+        Controller = new TrayController(
+            new TimeBarX.Core.JsonTimerStore(),
+            new TimeBarX.Core.JsonSettingsStore(),
+            composed);
     }
 
     public DisplayManager? Displays { get; private set; }
