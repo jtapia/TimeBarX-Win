@@ -20,6 +20,19 @@
                 <Separator />
                 <CheckBox Name="SoundCheck" Content="Play sound when timer completes" Click="OnSoundCheckClicked" />
                 <Separator />
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <TextBlock Text="Custom presets" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <Border Name="PresetsProChip"
+                            IsVisible="False"
+                            Background="#1E3A8A"
+                            CornerRadius="4"
+                            Padding="6,2"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="Pro" Foreground="#DBEAFE" FontSize="10" FontWeight="SemiBold" />
+                    </Border>
+                    <Button Content="Manage presets…" Click="OnManagePresetsClicked" />
+                </StackPanel>
+                <Separator />
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <CheckBox Name="AlwaysAboveCheck"
                               Content="Always above everything (experimental)"

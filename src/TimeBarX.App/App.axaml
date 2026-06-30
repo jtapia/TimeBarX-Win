@@ -21,6 +21,9 @@
                         <NativeMenuItemSeparator />
                         <NativeMenuItem Header="Start timer"
                                         IsEnabled="{Binding CanStart}">
+                            <!-- Items are rebuilt in code (see App.RebuildStartTimerMenu) on
+                                 settings/entitlement change so custom presets (Pro) can appear
+                                 above the built-ins. App locates this submenu by header. -->
                             <NativeMenu>
                                 <NativeMenuItem Header="1 min"   Click="OnStart1Clicked" />
                                 <NativeMenuItem Header="5 min"   Click="OnStart5Clicked" />

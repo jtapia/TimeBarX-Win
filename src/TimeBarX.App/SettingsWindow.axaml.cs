@@ -24,6 +24,7 @@ public partial class SettingsWindow : Window
     private Control? _positionProChip;
     private Control? _alwaysAboveProChip;
     private Control? _gradientProChip;
+    private Control? _presetsProChip;
 
     // Radio groups paired with their setting value, so SyncFromSettings can mark
     // the active option. Pairing radio+value at one site (vs. parallel arrays)
@@ -47,6 +48,7 @@ public partial class SettingsWindow : Window
         _positionProChip = this.FindControl<Control>("PositionProChip");
         _alwaysAboveProChip = this.FindControl<Control>("AlwaysAboveProChip");
         _gradientProChip = this.FindControl<Control>("GradientProChip");
+        _presetsProChip = this.FindControl<Control>("PresetsProChip");
 
         _defaultDurationRadios = new[]
         {
@@ -118,6 +120,15 @@ public partial class SettingsWindow : Window
         if (_positionProChip is not null) _positionProChip.IsVisible = locked;
         if (_alwaysAboveProChip is not null) _alwaysAboveProChip.IsVisible = locked;
         if (_gradientProChip is not null) _gradientProChip.IsVisible = locked;
+        if (_presetsProChip is not null) _presetsProChip.IsVisible = locked;
+    }
+
+    private void OnManagePresetsClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (!RequireProOrPrompt()) return;
+        if (_controller is null) return;
+        var dialog = new ManagePresetsDialog(_controller);
+        dialog.ShowDialog(this);
     }
 
     /// <summary>

@@ -31,7 +31,8 @@ public sealed record AppSettings(
     TimeSpan DefaultDuration,
     bool AlwaysAboveEverything = false,
     IReadOnlyList<string>? HideForProcesses = null,
-    BarPosition Position = BarPosition.Top)
+    BarPosition Position = BarPosition.Top,
+    IReadOnlyList<CustomPreset>? CustomPresets = null)
 {
     public static IReadOnlyList<string> DefaultHideList { get; } = new[]
     {
@@ -48,7 +49,8 @@ public sealed record AppSettings(
         DefaultDuration: TimeSpan.FromMinutes(25),
         AlwaysAboveEverything: false,
         HideForProcesses: DefaultHideList,
-        Position: BarPosition.Top);
+        Position: BarPosition.Top,
+        CustomPresets: Array.Empty<CustomPreset>());
 
     public AppSettings WithOpacity(double opacity)
     {

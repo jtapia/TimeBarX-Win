@@ -55,6 +55,12 @@ public partial class App : Application
             Displays = new DisplayManager(Controller);
             Displays.Start();
 
+            // Custom presets are appended to the "Start timer" submenu at runtime;
+            // refresh on any settings change (Manage presets dialog edits) and on
+            // entitlement flip (Pro → custom presets show; Free → "Add preset…" hint).
+            Controller.SettingsChanged += RebuildStartTimerMenu;
+            RebuildStartTimerMenu();
+
             Controller.RestoreFromStore();
 
             _power = new PowerEventBridge(OnSystemResume);
@@ -161,6 +167,80 @@ public partial class App : Application
             _quickInput = null;
         };
         window.Show();
+    }
+
+    private NativeMenuItem[]? _builtinStartItems;
+
+    /// <summary>
+    /// Rebuilds the "Start timer" submenu so the user's custom presets (Pro)
+    /// appear above the built-in 1/5/10/... entries. Snapshotting the built-in
+    /// items on first call means we can re-construct the menu deterministically
+    /// without losing their click handlers across rebuilds.
+    /// </summary>
+    private void RebuildStartTimerMenu()
+    {
+        var startMenu = FindStartTimerMenu();
+        if (startMenu is null) return;
+
+        // First call: snapshot the XAML-declared built-in items so we can
+        // re-insert them on every rebuild without losing the Click handlers.
+        _builtinStartItems ??= startMenu.Items.OfType<NativeMenuItem>().ToArray();
+
+        startMenu.Items.Clear();
+
+        var customPresets = Controller.Settings.CustomPresets ?? Array.Empty<TimeBarX.Core.CustomPreset>();
+        if (Controller.Entitlements.IsPro && customPresets.Count > 0)
+        {
+            foreach (var p in customPresets)
+            {
+                var item = new NativeMenuItem(p.Name);
+                var captured = p; // capture local to avoid closure-over-loop-variable
+                item.Click += (_, _) => Controller.StartCustom(captured.Duration, FormatPresetTag(captured.Duration), captured.Label);
+                startMenu.Items.Add(item);
+            }
+            startMenu.Items.Add(new NativeMenuItemSeparator());
+        }
+        else if (!Controller.Entitlements.IsPro)
+        {
+            // Free-tier hook: a single entry that opens the upgrade dialog.
+            var add = new NativeMenuItem("Add custom preset… (Pro)");
+            add.Click += (_, _) => ShowUpgradeFromTray();
+            startMenu.Items.Add(add);
+            startMenu.Items.Add(new NativeMenuItemSeparator());
+        }
+
+        foreach (var item in _builtinStartItems!) startMenu.Items.Add(item);
+    }
+
+    private NativeMenu? FindStartTimerMenu()
+    {
+        var icons = TrayIcon.GetIcons(this);
+        if (icons is null) return null;
+        foreach (var icon in icons)
+        {
+            if (icon.Menu is null) continue;
+            foreach (var entry in icon.Menu.Items.OfType<NativeMenuItem>())
+            {
+                if (entry.Header == "Start timer") return entry.Menu;
+            }
+        }
+        return null;
+    }
+
+    private static string FormatPresetTag(TimeSpan d)
+    {
+        if (d.TotalHours >= 1 && d.Minutes == 0 && d.Seconds == 0) return $"{(int)d.TotalHours}h";
+        if (d.TotalMinutes >= 1 && d.Seconds == 0) return $"{(int)d.TotalMinutes}m";
+        return d.ToString();
+    }
+
+    private void ShowUpgradeFromTray()
+    {
+        // Open the upgrade dialog without an owner window — the tray-menu path
+        // doesn't have one, and ShowDialog(null) isn't supported on Avalonia. Use
+        // Show() instead so the modal is a floating window the user can close.
+        var dialog = new UpgradeProDialog(Controller.Entitlements);
+        dialog.Show();
     }
 
     private void StartPreset(int minutes)

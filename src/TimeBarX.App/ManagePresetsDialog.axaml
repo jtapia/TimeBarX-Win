@@ -1,0 +1,68 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:app="clr-namespace:TimeBarX.App"
+        x:Class="TimeBarX.App.ManagePresetsDialog"
+        Title="Manage custom presets"
+        WindowStartupLocation="CenterOwner"
+        Width="460" Height="420"
+        CanResize="False"
+        ShowInTaskbar="False">
+    <Grid Margin="16" RowDefinitions="Auto,*,Auto,Auto,Auto">
+        <TextBlock Grid.Row="0"
+                   Text="Custom presets appear in the tray's Start timer submenu."
+                   Opacity="0.7" Margin="0,0,0,10" TextWrapping="Wrap" />
+
+        <Border Grid.Row="1"
+                BorderThickness="1"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                CornerRadius="4">
+            <ScrollViewer>
+                <ItemsControl Name="PresetList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="app:ManagePresetsDialog+PresetRow">
+                            <Grid ColumnDefinitions="*,Auto,Auto" Margin="8,6">
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                    <TextBlock Text="{Binding DurationDisplay}" Opacity="0.6" FontSize="11" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding LabelDisplay}"
+                                           Opacity="0.55" FontSize="11"
+                                           VerticalAlignment="Center"
+                                           Margin="0,0,8,0" />
+                                <Button Grid.Column="2"
+                                        Content="Remove"
+                                        Tag="{Binding Index}"
+                                        Click="OnRemoveClicked"
+                                        VerticalAlignment="Center" />
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <TextBlock Grid.Row="2"
+                   Name="EmptyHint"
+                   Text="No custom presets yet. Add one below."
+                   Opacity="0.55" FontSize="11"
+                   HorizontalAlignment="Center"
+                   Margin="0,8,0,0"
+                   IsVisible="False" />
+
+        <Grid Grid.Row="3" ColumnDefinitions="*,*,Auto" Margin="0,12,0,0" ColumnSpacing="8">
+            <TextBox Grid.Column="0" Name="NameInput"
+                     PlaceholderText="Name (e.g. Standup)" />
+            <TextBox Grid.Column="1" Name="DurationInput"
+                     PlaceholderText="Duration (e.g. 15 min, 1:30)" />
+            <Button Grid.Column="2" Name="AddButton" Content="Add" Click="OnAddClicked" />
+        </Grid>
+
+        <TextBlock Grid.Row="4"
+                   Name="StatusText"
+                   Opacity="0.7" FontSize="11"
+                   Margin="0,8,0,0"
+                   IsVisible="False"
+                   TextWrapping="Wrap" />
+    </Grid>
+</Window>
