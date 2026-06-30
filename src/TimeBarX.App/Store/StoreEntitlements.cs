@@ -111,7 +111,11 @@ public sealed class StoreEntitlements : IEntitlements
     {
         if (_isPro == value) return;
         _isPro = value;
-        Changed?.Invoke();
+        // RefreshAsync/BuyAsync await with ConfigureAwait(false), so this can run
+        // on a thread-pool thread. Changed subscribers re-render Avalonia UI
+        // (overlay layout, Settings chips, tray menu), which must touch the UI
+        // thread — marshal the notification so handlers never run off-thread.
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => Changed?.Invoke());
     }
 
     private static bool LooksLikePlaceholder(string id)

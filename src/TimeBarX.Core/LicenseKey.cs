@@ -44,6 +44,9 @@ public static class LicenseKey
         if (string.IsNullOrWhiteSpace(key)) return false;
 
         // Trim user paste cruft (spaces, surrounding quotes) before splitting.
+        // Splitting on '-' into exactly 3 parts is safe: the payload and sig
+        // segments are base32 (A-Z2-7), which never contains '-', so an
+        // arbitrary payload — even one with dashes — is encoded dash-free.
         var trimmed = key.Trim().Trim('"');
         var parts = trimmed.Split('-');
         if (parts.Length != 3) return false;
