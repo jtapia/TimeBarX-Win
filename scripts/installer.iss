@@ -16,7 +16,10 @@ DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 OutputDir=..\artifacts\installer
-OutputBaseFilename=TimeBarX-{#AppVersion}-Setup
+; Filename is stable across versions; the version lives in the URL path
+; (gettimebarx.com/download/<version>/TimeBarX-Setup.exe) and in AppVersion
+; above (Add/Remove Programs / Partner Center read it from the manifest).
+OutputBaseFilename=TimeBarX-Setup
 Compression=lzma2
 SolidCompression=yes
 ArchitecturesInstallIn64BitMode=x64
@@ -33,7 +36,12 @@ Name: "startmenuicon"; Description: "Create a Start Menu shortcut"; GroupDescrip
 Name: "startuprun"; Description: "Start TimeBarX when I sign in"; GroupDescription: "Startup:"; Flags: unchecked
 
 [Files]
-Source: "..\artifacts\publish\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; Exclude PDB symbols from the installer — they ship debug info, bloat the
+; installer by ~5–15 MB, and aren't needed for production users. Keep them in
+; artifacts/publish/ for local debugging; just don't bundle them.
+Source: "..\artifacts\publish\*"; DestDir: "{app}"; \
+  Excludes: "*.pdb"; \
+  Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\{#AppName}"; Filename: "{app}\{#ExeName}"; Tasks: startmenuicon
