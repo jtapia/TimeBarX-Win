@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    MSIX package manifest for the Microsoft Store build.
+
+    The Identity / Publisher fields below are PLACEHOLDERS. Replace them with
+    the values you get from Partner Center after reserving the "TimeBarX" name:
+      - Name           : Partner Center → App identity → Package family name (the part before "_xxx")
+      - Publisher      : Partner Center → App identity → Publisher (full CN=... string)
+      - PublisherDisplayName : your developer display name
+    See STORE_SUBMISSION.md for the walkthrough.
+
+    The Inno-installed direct build does NOT use this manifest — it's Store-only.
+-->
+<Package
+    xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+    xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+    xmlns:uap3="http://schemas.microsoft.com/appx/manifest/uap/windows10/3"
+    xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+    IgnorableNamespaces="uap uap3 rescap">
+
+  <Identity
+      Name="PLACEHOLDER.TimeBarX"
+      Publisher="CN=PLACEHOLDER_PUBLISHER_GUID"
+      Version="0.1.0.0" />
+
+  <Properties>
+    <DisplayName>TimeBarX</DisplayName>
+    <PublisherDisplayName>PLACEHOLDER_PUBLISHER_NAME</PublisherDisplayName>
+    <Logo>assets\store-tiles\StoreLogo.png</Logo>
+  </Properties>
+
+  <Dependencies>
+    <!-- StoreContext APIs we use have been GA since 1809; older overloads work
+         back to 1607 but we already declare 1809 as the .NET TFM minimum. -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="App" Executable="TimeBarX.App.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+          DisplayName="TimeBarX"
+          Description="A thin progress-bar timer pinned to the edge of every screen."
+          BackgroundColor="transparent"
+          Square150x150Logo="assets\store-tiles\Square150x150Logo.png"
+          Square44x44Logo="assets\store-tiles\Square44x44Logo.png">
+        <uap:DefaultTile
+            Square71x71Logo="assets\store-tiles\Square71x71Logo.png"
+            Square310x310Logo="assets\store-tiles\Square310x310Logo.png"
+            Wide310x150Logo="assets\store-tiles\Wide310x150Logo.png" />
+        <uap:SplashScreen Image="assets\store-tiles\SplashScreen.png" BackgroundColor="transparent" />
+      </uap:VisualElements>
+
+      <Extensions>
+        <!-- timebarx:// URI scheme — same as the Inno installer registers via the
+             registry, exposed here through the MSIX protocol-handler extension. -->
+        <uap:Extension Category="windows.protocol">
+          <uap:Protocol Name="timebarx" DisplayName="TimeBarX timer">
+            <uap:Logo>assets\store-tiles\Square44x44Logo.png</uap:Logo>
+          </uap:Protocol>
+        </uap:Extension>
+      </Extensions>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- Full-trust desktop app: needs Win32 access for global hotkey, tray icon,
+         click-through overlay windows, JSON persistence in %APPDATA%. -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>
