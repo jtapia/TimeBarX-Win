@@ -11,7 +11,12 @@ namespace TimeBarX.App;
 
 public partial class App : Application
 {
-    public TrayController Controller { get; } = new();
+    // Phase 1: wire a MockEntitlements so dev builds can flip Pro via TIMEBARX_PRO=1.
+    // Phase 2 will replace MockEntitlements with StoreEntitlements on Windows.
+    public TrayController Controller { get; } = new(
+        new TimeBarX.Core.JsonTimerStore(),
+        new TimeBarX.Core.JsonSettingsStore(),
+        new TimeBarX.App.Store.MockEntitlements());
 
     public DisplayManager? Displays { get; private set; }
 

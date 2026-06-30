@@ -56,4 +56,33 @@ public sealed record AppSettings(
         if (opacity > 1) opacity = 1;
         return this with { Opacity = opacity };
     }
+
+    /// <summary>The default bar color used when entitlement clamps non-Pro users.</summary>
+    public const BarColor FreeColor = BarColor.Blue;
+
+    /// <summary>
+    /// Returns a view of this settings record safe to apply for the given
+    /// entitlement. Pro-only values fall back to free behavior; the *stored*
+    /// values on <c>this</c> are not mutated, so re-purchase / Restore restores
+    /// the full Pro state without the user re-entering anything.
+    ///
+    /// Free-tier overrides:
+    /// <list type="bullet">
+    ///   <item><see cref="Position"/> = <see cref="BarPosition.Top"/></item>
+    ///   <item><see cref="GradientMode"/> = <c>false</c></item>
+    ///   <item><see cref="Color"/> = <see cref="FreeColor"/> when not the default</item>
+    ///   <item><see cref="AlwaysAboveEverything"/> = <c>false</c></item>
+    /// </list>
+    /// </summary>
+    public AppSettings ClampForEntitlement(bool isPro)
+    {
+        if (isPro) return this;
+        return this with
+        {
+            Position = BarPosition.Top,
+            GradientMode = false,
+            Color = FreeColor,
+            AlwaysAboveEverything = false,
+        };
+    }
 }

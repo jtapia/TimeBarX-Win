@@ -53,16 +53,29 @@ public sealed class TrayController : INotifyPropertyChanged
     /// <summary>If true, play a short sound on completion. Default off per PLAN.md.</summary>
     public bool PlayCompletionSound => _settings.PlayCompletionSound;
 
+    /// <summary>
+    /// Single source of truth for Pro state. Phase 1 wires the abstraction;
+    /// later phases consume it (clamp <see cref="Settings"/>, gate Pro-only UI,
+    /// route the URI automation). Free until a platform impl replaces the default.
+    /// </summary>
+    public IEntitlements Entitlements { get; }
+
     public TrayController()
-        : this(new JsonTimerStore(), new JsonSettingsStore())
+        : this(new JsonTimerStore(), new JsonSettingsStore(), new FreeEntitlements())
     {
     }
 
     public TrayController(ITimerStore store, ISettingsStore settingsStore)
+        : this(store, settingsStore, new FreeEntitlements())
+    {
+    }
+
+    public TrayController(ITimerStore store, ISettingsStore settingsStore, IEntitlements entitlements)
     {
         _store = store;
         _settingsStore = settingsStore;
         _settings = _settingsStore.Load();
+        Entitlements = entitlements;
         _ticker = new DispatcherTimer { Interval = RefreshInterval };
         _ticker.Tick += (_, _) => RefreshFromEngine();
     }
