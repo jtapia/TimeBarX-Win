@@ -49,7 +49,9 @@
                                         IsEnabled="{Binding CanStop}" />
                         <NativeMenuItemSeparator />
                         <NativeMenuItem Header="Settings…" Click="OnSettingsClicked" />
-                        <NativeMenuItem Header="Buy Pro…" Click="OnBuyProClicked" />
+                        <NativeMenuItem Header="Buy Pro…"
+                                        Click="OnBuyProClicked"
+                                        IsVisible="{Binding ShowBuyPro}" />
                         <NativeMenuItemSeparator />
                         <NativeMenuItem Header="Quit" Click="OnQuitClicked" />
                     </NativeMenu>

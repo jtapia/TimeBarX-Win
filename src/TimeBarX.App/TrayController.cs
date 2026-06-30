@@ -94,7 +94,11 @@ public sealed class TrayController : INotifyPropertyChanged
         // EffectiveSettings produces from the same stored values, so reuse the
         // SettingsChanged event for live re-render across the overlays / policy
         // / Settings window. The Store impl marshals onto the UI thread itself.
-        Entitlements.Changed += () => SettingsChanged?.Invoke();
+        Entitlements.Changed += () =>
+        {
+            SettingsChanged?.Invoke();
+            Raise(nameof(ShowBuyPro));
+        };
         _ticker = new DispatcherTimer { Interval = RefreshInterval };
         _ticker.Tick += (_, _) => RefreshFromEngine();
     }
@@ -119,6 +123,13 @@ public sealed class TrayController : INotifyPropertyChanged
     public bool CanPause => _engine.State == TimerState.Running;
     public bool CanResume => _engine.State == TimerState.Paused;
     public bool CanStop => _engine.State is TimerState.Running or TimerState.Paused;
+
+    /// <summary>
+    /// Whether the tray's "Buy Pro…" entry should be shown. Hidden once the user
+    /// is already Pro (via Store IAP or a license key) so it doesn't nag forever.
+    /// Re-raised on every entitlement transition (see <see cref="Entitlements.Changed"/>).
+    /// </summary>
+    public bool ShowBuyPro => !Entitlements.IsPro;
 
     /// <summary>
     /// Rehydrates a previously-saved timer from the store. Stale (already-completed)
