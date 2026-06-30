@@ -19,17 +19,25 @@ public partial class App : Application
     //     (Mock honors TIMEBARX_PRO=1 for macOS dev / CI.)
     public TimeBarX.App.Store.LicenseKeyEntitlements LicenseKey { get; } = new();
 
+    /// <summary>
+    /// The store/dev purchase channel (the concrete StoreEntitlements or
+    /// MockEntitlements). The UpgradeProDialog's Buy/Restore buttons need this
+    /// concrete instance — NOT the composed <see cref="TrayController.Entitlements"/>,
+    /// whose runtime type is OrEntitlements and would fail the dialog's
+    /// `is StoreEntitlements` / `is MockEntitlements` checks.
+    /// </summary>
+    public TimeBarX.Core.IEntitlements PurchaseChannel { get; }
+
     public TrayController Controller { get; }
 
     public App()
     {
-        TimeBarX.Core.IEntitlements primary;
 #if WINDOWS
-        primary = new TimeBarX.App.Store.StoreEntitlements();
+        PurchaseChannel = new TimeBarX.App.Store.StoreEntitlements();
 #else
-        primary = new TimeBarX.App.Store.MockEntitlements();
+        PurchaseChannel = new TimeBarX.App.Store.MockEntitlements();
 #endif
-        var composed = new TimeBarX.App.Store.OrEntitlements(primary, LicenseKey);
+        var composed = new TimeBarX.App.Store.OrEntitlements(PurchaseChannel, LicenseKey);
         Controller = new TrayController(
             new TimeBarX.Core.JsonTimerStore(),
             new TimeBarX.Core.JsonSettingsStore(),
@@ -174,7 +182,7 @@ public partial class App : Application
         window.Show();
     }
 
-    private NativeMenuItem[]? _builtinStartItems;
+    private NativeMenuItemBase[]? _builtinStartItems;
 
     /// <summary>
     /// Rebuilds the "Start timer" submenu so the user's custom presets (Pro)
@@ -189,7 +197,9 @@ public partial class App : Application
 
         // First call: snapshot the XAML-declared built-in items so we can
         // re-insert them on every rebuild without losing the Click handlers.
-        _builtinStartItems ??= startMenu.Items.OfType<NativeMenuItem>().ToArray();
+        // Snapshot the full item list (NativeMenuItemBase) — not just
+        // NativeMenuItem — so the separator before "Custom…" survives rebuilds.
+        _builtinStartItems ??= startMenu.Items.ToArray();
 
         startMenu.Items.Clear();
 
@@ -244,7 +254,9 @@ public partial class App : Application
         // Open the upgrade dialog without an owner window — the tray-menu path
         // doesn't have one, and ShowDialog(null) isn't supported on Avalonia. Use
         // Show() instead so the modal is a floating window the user can close.
-        var dialog = new UpgradeProDialog(Controller.Entitlements);
+        // Pass the concrete PurchaseChannel (not the composed entitlement) so the
+        // dialog's Buy/Restore type checks match.
+        var dialog = new UpgradeProDialog(PurchaseChannel);
         dialog.Show();
     }
 

@@ -149,7 +149,12 @@ public partial class SettingsWindow : Window
     private void OpenUpgradeDialog()
     {
         if (_controller is null) return;
-        var dialog = new UpgradeProDialog(_controller.Entitlements);
+        // Pass the concrete purchase channel (Store/Mock), not the composed
+        // OrEntitlements on the controller — the dialog's Buy/Restore branches
+        // type-check against StoreEntitlements/MockEntitlements.
+        var channel = (Avalonia.Application.Current as App)?.PurchaseChannel
+                      ?? _controller.Entitlements;
+        var dialog = new UpgradeProDialog(channel);
         dialog.ShowDialog(this);
     }
 
