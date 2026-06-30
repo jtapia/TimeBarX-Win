@@ -91,17 +91,7 @@
                     <RadioButton Name="HeightThick"  GroupName="Height" Content="Large"  Click="OnHeight4" />
                 </StackPanel>
                 <Separator />
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <TextBlock Text="Position" FontWeight="SemiBold" />
-                    <Border Name="PositionProChip"
-                            IsVisible="False"
-                            Background="#1E3A8A"
-                            CornerRadius="4"
-                            Padding="6,2"
-                            VerticalAlignment="Center">
-                        <TextBlock Text="Pro" Foreground="#DBEAFE" FontSize="10" FontWeight="SemiBold" />
-                    </Border>
-                </StackPanel>
+                <TextBlock Text="Position" FontWeight="SemiBold" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <RadioButton Name="PositionTop"    GroupName="Position" Content="Top"    Click="OnPositionTop" />
                     <RadioButton Name="PositionBottom" GroupName="Position" Content="Bottom" Click="OnPositionBottom" />

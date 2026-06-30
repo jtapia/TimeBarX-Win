@@ -53,9 +53,10 @@ public partial class OverlayWindow : Window
         if (_screen is null) return;
         var bounds = _screen.Bounds;
         var scaling = _screen.Scaling > 0 ? _screen.Scaling : 1.0;
-        // EffectiveSettings clamps Pro-only fields (Position, GradientMode,
-        // Color, AlwaysAboveEverything) to free behavior when not entitled —
-        // the stored values are preserved for re-purchase / Restore.
+        // EffectiveSettings clamps Pro-only fields (GradientMode, Color,
+        // AlwaysAboveEverything) to free behavior when not entitled — the stored
+        // values are preserved for re-purchase / Restore. Position is free, so
+        // Top/Bottom always applies regardless of entitlement.
         var effective = _boundController?.EffectiveSettings;
         var position = effective?.Position ?? BarPosition.Top;
         var configHeightDip = (int)(effective?.Height ?? BarHeight.Normal);

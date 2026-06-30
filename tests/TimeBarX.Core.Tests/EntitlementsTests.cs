@@ -43,10 +43,11 @@ public class ClampForEntitlementTests
     }
 
     [Fact]
-    public void NotPro_Clamps_Position_ToTop()
+    public void NotPro_Preserves_Position()
     {
+        // Position (Top/Bottom) is a FREE feature — clamping must not touch it.
         var clamped = ProSettings().ClampForEntitlement(isPro: false);
-        Assert.Equal(BarPosition.Top, clamped.Position);
+        Assert.Equal(BarPosition.Bottom, clamped.Position);
     }
 
     [Fact]

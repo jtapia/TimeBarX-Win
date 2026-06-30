@@ -73,8 +73,7 @@ public sealed class OverlayPolicy : IDisposable
         }
 
         // Bottom mode needs the fast cadence to keep out-ranking the taskbar.
-        // EffectiveSettings clamps Position→Top when not Pro, so a non-Pro user
-        // never lands on FastCadence even if their stored Position is Bottom.
+        // Position is a free feature (not clamped), so this applies for every user.
         var wanted = _controller.EffectiveSettings.Position == BarPosition.Bottom ? FastCadence : SlowCadence;
         if (_timer.Interval != wanted) _timer.Interval = wanted;
         _timer.Start();
@@ -87,9 +86,9 @@ public sealed class OverlayPolicy : IDisposable
         var handle = _overlay.TryGetPlatformHandle()?.Handle;
         if (handle is null || handle == IntPtr.Zero) return;
 
-        // EffectiveSettings: clamps Position→Top, AlwaysAboveEverything→false
-        // for non-Pro users, so the policy never enters Bottom-mode/topmost-
-        // reassert paths just because someone edited the JSON without Pro.
+        // EffectiveSettings clamps AlwaysAboveEverything→false for non-Pro users,
+        // so the policy never enters the topmost-reassert path without Pro.
+        // (Position is free, so Bottom mode applies regardless.)
         var settings = _controller.EffectiveSettings;
         var foreground = GetForegroundWindow();
         var bottomMode = settings.Position == BarPosition.Bottom;

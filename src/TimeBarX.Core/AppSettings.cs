@@ -68,9 +68,8 @@ public sealed record AppSettings(
     /// values on <c>this</c> are not mutated, so re-purchase / Restore restores
     /// the full Pro state without the user re-entering anything.
     ///
-    /// Free-tier overrides:
+    /// Free-tier overrides (Position is NOT clamped — Top/Bottom is free):
     /// <list type="bullet">
-    ///   <item><see cref="Position"/> = <see cref="BarPosition.Top"/></item>
     ///   <item><see cref="GradientMode"/> = <c>false</c></item>
     ///   <item><see cref="Color"/> = <see cref="FreeColor"/> when not the default</item>
     ///   <item><see cref="AlwaysAboveEverything"/> = <c>false</c></item>
@@ -81,7 +80,6 @@ public sealed record AppSettings(
         if (isPro) return this;
         return this with
         {
-            Position = BarPosition.Top,
             GradientMode = false,
             Color = FreeColor,
             AlwaysAboveEverything = false,

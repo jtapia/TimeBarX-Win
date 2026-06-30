@@ -19,8 +19,8 @@
 
         <StackPanel Spacing="6">
             <TextBlock Text="• Custom colors and gradient mode" />
-            <TextBlock Text="• Bottom / taskbar-fill position" />
             <TextBlock Text="• Always above everything (experimental)" />
+            <TextBlock Text="• Saved custom presets" />
             <TextBlock Text="• timebarx:// URI automation (PowerToys, Flow, AutoHotkey)" />
         </StackPanel>
 

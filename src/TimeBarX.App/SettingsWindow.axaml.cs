@@ -21,7 +21,6 @@ public partial class SettingsWindow : Window
 
     // "Pro" chips on locked feature groups — visible only when !IsPro.
     private Control? _colorProChip;
-    private Control? _positionProChip;
     private Control? _alwaysAboveProChip;
     private Control? _gradientProChip;
     private Control? _presetsProChip;
@@ -45,7 +44,6 @@ public partial class SettingsWindow : Window
         _versionText = this.FindControl<TextBlock>("VersionText");
         _updateText = this.FindControl<TextBlock>("UpdateText");
         _colorProChip = this.FindControl<Control>("ColorProChip");
-        _positionProChip = this.FindControl<Control>("PositionProChip");
         _alwaysAboveProChip = this.FindControl<Control>("AlwaysAboveProChip");
         _gradientProChip = this.FindControl<Control>("GradientProChip");
         _presetsProChip = this.FindControl<Control>("PresetsProChip");
@@ -117,7 +115,6 @@ public partial class SettingsWindow : Window
         var isPro = _controller?.Entitlements.IsPro ?? false;
         var locked = !isPro;
         if (_colorProChip is not null) _colorProChip.IsVisible = locked;
-        if (_positionProChip is not null) _positionProChip.IsVisible = locked;
         if (_alwaysAboveProChip is not null) _alwaysAboveProChip.IsVisible = locked;
         if (_gradientProChip is not null) _gradientProChip.IsVisible = locked;
         if (_presetsProChip is not null) _presetsProChip.IsVisible = locked;
@@ -246,11 +243,11 @@ public partial class SettingsWindow : Window
     private void OnHeight3(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { Height = BarHeight.Normal });
     private void OnHeight4(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { Height = BarHeight.Thick });
 
-    // Position — Top is free; Bottom is Pro.
+    // Position (Top/Bottom) is free — no Pro gate.
     private void OnPositionTop(object? s, Avalonia.Interactivity.RoutedEventArgs e)
         => Update(x => x with { Position = BarPosition.Top });
     private void OnPositionBottom(object? s, Avalonia.Interactivity.RoutedEventArgs e)
-    { if (!RequireProOrPrompt()) return; Update(x => x with { Position = BarPosition.Bottom }); }
+        => Update(x => x with { Position = BarPosition.Bottom });
 
     private void OnOpacityChanged(object? s, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
     {
