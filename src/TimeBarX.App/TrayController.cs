@@ -136,8 +136,19 @@ public sealed class TrayController : INotifyPropertyChanged
         {
             case TimerState.Running when snapshot.EndTime is not null:
                 _engine.StartAt(snapshot.EndTime.Value, snapshot.Total);
-                if (_engine.State == TimerState.Running) _ticker.Start();
-                else _store.Clear();
+                if (_engine.State == TimerState.Running)
+                {
+                    _ticker.Start();
+                }
+                else
+                {
+                    // End-time already passed while the app was closed: the timer
+                    // finished off-screen. Treat it as idle rather than surfacing a
+                    // frozen, full-width "Completed" bar with no completion effect —
+                    // reopening the app should show no bar, not a stuck one.
+                    _engine.Stop();
+                    _store.Clear();
+                }
                 break;
 
             case TimerState.Paused:
