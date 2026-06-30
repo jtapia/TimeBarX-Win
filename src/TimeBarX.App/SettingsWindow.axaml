@@ -20,9 +20,19 @@
                 <Separator />
                 <CheckBox Name="SoundCheck" Content="Play sound when timer completes" Click="OnSoundCheckClicked" />
                 <Separator />
-                <CheckBox Name="AlwaysAboveCheck"
-                          Content="Always above everything (experimental)"
-                          Click="OnAlwaysAboveClicked" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <CheckBox Name="AlwaysAboveCheck"
+                              Content="Always above everything (experimental)"
+                              Click="OnAlwaysAboveClicked" />
+                    <Border Name="AlwaysAboveProChip"
+                            IsVisible="False"
+                            Background="#1E3A8A"
+                            CornerRadius="4"
+                            Padding="6,2"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="Pro" Foreground="#DBEAFE" FontSize="10" FontWeight="SemiBold" />
+                    </Border>
+                </StackPanel>
                 <Border Name="AlwaysAboveWarning"
                         IsVisible="False"
                         Background="#3F2A14"
@@ -39,7 +49,17 @@
 
         <TabItem Header="Appearance">
             <StackPanel Margin="12" Spacing="14">
-                <TextBlock Text="Color" FontWeight="SemiBold" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="Color" FontWeight="SemiBold" />
+                    <Border Name="ColorProChip"
+                            IsVisible="False"
+                            Background="#1E3A8A"
+                            CornerRadius="4"
+                            Padding="6,2"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="Pro" Foreground="#DBEAFE" FontSize="10" FontWeight="SemiBold" />
+                    </Border>
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <RadioButton Name="ColorAccent" GroupName="Color" Content="Accent" Click="OnColorAccent" />
                     <RadioButton Name="ColorBlue"   GroupName="Color" Content="Blue"   Click="OnColorBlue" />
@@ -55,7 +75,17 @@
                     <RadioButton Name="HeightThick"  GroupName="Height" Content="Large"  Click="OnHeight4" />
                 </StackPanel>
                 <Separator />
-                <TextBlock Text="Position" FontWeight="SemiBold" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="Position" FontWeight="SemiBold" />
+                    <Border Name="PositionProChip"
+                            IsVisible="False"
+                            Background="#1E3A8A"
+                            CornerRadius="4"
+                            Padding="6,2"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="Pro" Foreground="#DBEAFE" FontSize="10" FontWeight="SemiBold" />
+                    </Border>
+                </StackPanel>
                 <StackPanel Orientation="Horizontal" Spacing="8">
                     <RadioButton Name="PositionTop"    GroupName="Position" Content="Top"    Click="OnPositionTop" />
                     <RadioButton Name="PositionBottom" GroupName="Position" Content="Bottom" Click="OnPositionBottom" />
@@ -65,7 +95,17 @@
                 <Slider Name="OpacitySlider" Minimum="0.1" Maximum="1.0" TickFrequency="0.1"
                         IsSnapToTickEnabled="True"
                         ValueChanged="OnOpacityChanged" />
-                <CheckBox Name="GradientCheck" Content="Gradient mode (green → red)" Click="OnGradientClicked" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <CheckBox Name="GradientCheck" Content="Gradient mode (green → red)" Click="OnGradientClicked" />
+                    <Border Name="GradientProChip"
+                            IsVisible="False"
+                            Background="#1E3A8A"
+                            CornerRadius="4"
+                            Padding="6,2"
+                            VerticalAlignment="Center">
+                        <TextBlock Text="Pro" Foreground="#DBEAFE" FontSize="10" FontWeight="SemiBold" />
+                    </Border>
+                </StackPanel>
             </StackPanel>
         </TabItem>
 

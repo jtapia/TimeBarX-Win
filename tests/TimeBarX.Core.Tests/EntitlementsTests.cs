@@ -107,4 +107,18 @@ public class ClampForEntitlementTests
         var clamped = free.ClampForEntitlement(isPro: false);
         Assert.Equal(free, clamped);
     }
+
+    [Fact]
+    public void RoundTrip_NotPro_ThenPro_RestoresAllProValues()
+    {
+        // The whole point of clamping (vs. mutating): a Pro user who refunds
+        // and re-purchases gets back exactly what they had.
+        var pro = ProSettings();
+        var clamped = pro.ClampForEntitlement(isPro: false);
+        // The stored pro record is untouched; clamping the stored record with
+        // isPro=true is identity.
+        var restored = pro.ClampForEntitlement(isPro: true);
+        Assert.Equal(pro, restored);
+        Assert.NotEqual(clamped, restored);
+    }
 }

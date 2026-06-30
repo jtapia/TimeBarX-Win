@@ -53,8 +53,12 @@ public partial class OverlayWindow : Window
         if (_screen is null) return;
         var bounds = _screen.Bounds;
         var scaling = _screen.Scaling > 0 ? _screen.Scaling : 1.0;
-        var position = _boundController?.Settings.Position ?? BarPosition.Top;
-        var configHeightDip = (int)(_boundController?.Settings.Height ?? BarHeight.Normal);
+        // EffectiveSettings clamps Pro-only fields (Position, GradientMode,
+        // Color, AlwaysAboveEverything) to free behavior when not entitled —
+        // the stored values are preserved for re-purchase / Restore.
+        var effective = _boundController?.EffectiveSettings;
+        var position = effective?.Position ?? BarPosition.Top;
+        var configHeightDip = (int)(effective?.Height ?? BarHeight.Normal);
 
         _barWidth = bounds.Width / scaling;
         Width = _barWidth;
@@ -178,7 +182,10 @@ public partial class OverlayWindow : Window
     private void ApplySettings()
     {
         if (_boundController is null) return;
-        var settings = _boundController.Settings;
+        // Read EffectiveSettings everywhere the bar is *rendered* — clamps Pro
+        // values (gradient, custom color, position, always-above) to free
+        // behavior without losing the stored values.
+        var settings = _boundController.EffectiveSettings;
         Opacity = settings.Opacity;
         ApplyScreenLayout();
         ApplyBarColor();
@@ -188,7 +195,7 @@ public partial class OverlayWindow : Window
     {
         if (_progressBar is null || _boundController is null) return;
         if (_animator is { IsActive: true }) return; // animator owns the brush mid-sequence
-        var rgb = BarColorPalette.ForProgress(_boundController.Settings, _boundController.Progress);
+        var rgb = BarColorPalette.ForProgress(_boundController.EffectiveSettings, _boundController.Progress);
         if (_barBrush is null || _lastBarRgb != rgb)
         {
             _barBrush = ToBrush(rgb);
@@ -213,7 +220,7 @@ public partial class OverlayWindow : Window
             // and restore opacity/color from settings.
             _animator?.Cancel();
             _animator = null;
-            Opacity = _boundController.Settings.Opacity;
+            Opacity = _boundController.EffectiveSettings.Opacity;
             ApplyBarColor();
         }
     }
@@ -222,8 +229,9 @@ public partial class OverlayWindow : Window
     {
         if (_progressBar is null || _boundController is null) return;
         _animator?.Cancel();
-        var resting = ToBrush(BarColorPalette.ForProgress(_boundController.Settings, 1.0));
-        _animator = new CompletionAnimator(this, _progressBar, resting, FlashBrush, _boundController.Settings.Opacity);
+        var effective = _boundController.EffectiveSettings;
+        var resting = ToBrush(BarColorPalette.ForProgress(effective, 1.0));
+        _animator = new CompletionAnimator(this, _progressBar, resting, FlashBrush, effective.Opacity);
         _animator.Run();
     }
 

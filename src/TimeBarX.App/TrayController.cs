@@ -36,7 +36,21 @@ public sealed class TrayController : INotifyPropertyChanged
     /// <summary>Raised when settings change so views can re-render.</summary>
     public event Action? SettingsChanged;
 
+    /// <summary>
+    /// The raw, stored settings. Includes Pro values verbatim — use this when
+    /// you need to know what the user has *configured*, not what's currently
+    /// applied (e.g. Settings UI sync still needs the stored value to persist
+    /// across entitlement flips).
+    /// </summary>
     public AppSettings Settings => _settings;
+
+    /// <summary>
+    /// Settings with Pro-only fields clamped to free values when not entitled.
+    /// Use this everywhere a setting drives the *rendered* behavior (overlay
+    /// layout, color, policy cadence). Re-purchase / Restore makes this equal
+    /// to <see cref="Settings"/> again without the user re-entering anything.
+    /// </summary>
+    public AppSettings EffectiveSettings => _settings.ClampForEntitlement(Entitlements.IsPro);
 
     private UpdateInfo? _availableUpdate;
     public UpdateInfo? AvailableUpdate
@@ -76,6 +90,11 @@ public sealed class TrayController : INotifyPropertyChanged
         _settingsStore = settingsStore;
         _settings = _settingsStore.Load();
         Entitlements = entitlements;
+        // Entitlement transitions (purchase / refund / restore) change what
+        // EffectiveSettings produces from the same stored values, so reuse the
+        // SettingsChanged event for live re-render across the overlays / policy
+        // / Settings window. The Store impl marshals onto the UI thread itself.
+        Entitlements.Changed += () => SettingsChanged?.Invoke();
         _ticker = new DispatcherTimer { Interval = RefreshInterval };
         _ticker.Tick += (_, _) => RefreshFromEngine();
     }

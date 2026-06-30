@@ -19,6 +19,12 @@ public partial class SettingsWindow : Window
     private TextBlock? _versionText;
     private TextBlock? _updateText;
 
+    // "Pro" chips on locked feature groups — visible only when !IsPro.
+    private Control? _colorProChip;
+    private Control? _positionProChip;
+    private Control? _alwaysAboveProChip;
+    private Control? _gradientProChip;
+
     // Radio groups paired with their setting value, so SyncFromSettings can mark
     // the active option. Pairing radio+value at one site (vs. parallel arrays)
     // keeps them from silently drifting if the XAML order ever changes.
@@ -37,6 +43,10 @@ public partial class SettingsWindow : Window
         _opacitySlider = this.FindControl<Slider>("OpacitySlider");
         _versionText = this.FindControl<TextBlock>("VersionText");
         _updateText = this.FindControl<TextBlock>("UpdateText");
+        _colorProChip = this.FindControl<Control>("ColorProChip");
+        _positionProChip = this.FindControl<Control>("PositionProChip");
+        _alwaysAboveProChip = this.FindControl<Control>("AlwaysAboveProChip");
+        _gradientProChip = this.FindControl<Control>("GradientProChip");
 
         _defaultDurationRadios = new[]
         {
@@ -82,15 +92,54 @@ public partial class SettingsWindow : Window
         {
             _controller.SettingsChanged -= SyncFromSettings;
             _controller.PropertyChanged -= OnControllerPropertyChanged;
+            _controller.Entitlements.Changed -= SyncProChips;
         }
         _controller = DataContext as TrayController;
         if (_controller is not null)
         {
             _controller.SettingsChanged += SyncFromSettings;
             _controller.PropertyChanged += OnControllerPropertyChanged;
+            // Re-render lock chips when entitlement flips (purchase / refund /
+            // dev SetPro). SettingsChanged also fires on entitlement transitions
+            // (wired in TrayController) for the rendered overlay; the chips are
+            // a separate UI concern that doesn't follow stored settings.
+            _controller.Entitlements.Changed += SyncProChips;
         }
         SyncFromSettings();
+        SyncProChips();
         SyncUpdate();
+    }
+
+    private void SyncProChips()
+    {
+        var isPro = _controller?.Entitlements.IsPro ?? false;
+        var locked = !isPro;
+        if (_colorProChip is not null) _colorProChip.IsVisible = locked;
+        if (_positionProChip is not null) _positionProChip.IsVisible = locked;
+        if (_alwaysAboveProChip is not null) _alwaysAboveProChip.IsVisible = locked;
+        if (_gradientProChip is not null) _gradientProChip.IsVisible = locked;
+    }
+
+    /// <summary>
+    /// Pro-gate guard. Call at the top of any handler that mutates a Pro-only
+    /// setting. If the user isn't entitled, opens the upgrade dialog and
+    /// returns false so the caller skips the mutation, then re-syncs the UI to
+    /// undo the click's optimistic radio/checkbox toggle.
+    /// </summary>
+    private bool RequireProOrPrompt()
+    {
+        if (_controller is null) return false;
+        if (_controller.Entitlements.IsPro) return true;
+        OpenUpgradeDialog();
+        SyncFromSettings();
+        return false;
+    }
+
+    private void OpenUpgradeDialog()
+    {
+        if (_controller is null) return;
+        var dialog = new UpgradeProDialog(_controller.Entitlements);
+        dialog.ShowDialog(this);
     }
 
     private void OnControllerPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
@@ -160,21 +209,32 @@ public partial class SettingsWindow : Window
         => Update(x => x with { PlayCompletionSound = _soundCheck?.IsChecked == true });
 
     private void OnAlwaysAboveClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
-        => Update(x => x with { AlwaysAboveEverything = _alwaysAboveCheck?.IsChecked == true });
+    {
+        if (!RequireProOrPrompt()) return;
+        Update(x => x with { AlwaysAboveEverything = _alwaysAboveCheck?.IsChecked == true });
+    }
 
-    // Appearance
-    private void OnColorAccent(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { Color = BarColor.Accent });
-    private void OnColorBlue(object? s, Avalonia.Interactivity.RoutedEventArgs e)   => Update(x => x with { Color = BarColor.Blue });
-    private void OnColorPurple(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { Color = BarColor.Purple });
-    private void OnColorGreen(object? s, Avalonia.Interactivity.RoutedEventArgs e)  => Update(x => x with { Color = BarColor.Green });
-    private void OnColorRed(object? s, Avalonia.Interactivity.RoutedEventArgs e)    => Update(x => x with { Color = BarColor.Red });
+    // Appearance — Color: Blue is the free default; the rest are Pro.
+    private void OnColorAccent(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+    { if (!RequireProOrPrompt()) return; Update(x => x with { Color = BarColor.Accent }); }
+    private void OnColorBlue(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+        => Update(x => x with { Color = BarColor.Blue });
+    private void OnColorPurple(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+    { if (!RequireProOrPrompt()) return; Update(x => x with { Color = BarColor.Purple }); }
+    private void OnColorGreen(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+    { if (!RequireProOrPrompt()) return; Update(x => x with { Color = BarColor.Green }); }
+    private void OnColorRed(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+    { if (!RequireProOrPrompt()) return; Update(x => x with { Color = BarColor.Red }); }
 
     private void OnHeight2(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { Height = BarHeight.Thin });
     private void OnHeight3(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { Height = BarHeight.Normal });
     private void OnHeight4(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { Height = BarHeight.Thick });
 
-    private void OnPositionTop(object? s, Avalonia.Interactivity.RoutedEventArgs e)    => Update(x => x with { Position = BarPosition.Top });
-    private void OnPositionBottom(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { Position = BarPosition.Bottom });
+    // Position — Top is free; Bottom is Pro.
+    private void OnPositionTop(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+        => Update(x => x with { Position = BarPosition.Top });
+    private void OnPositionBottom(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+    { if (!RequireProOrPrompt()) return; Update(x => x with { Position = BarPosition.Bottom }); }
 
     private void OnOpacityChanged(object? s, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
     {
@@ -183,5 +243,8 @@ public partial class SettingsWindow : Window
     }
 
     private void OnGradientClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
-        => Update(x => x with { GradientMode = _gradientCheck?.IsChecked == true });
+    {
+        if (!RequireProOrPrompt()) return;
+        Update(x => x with { GradientMode = _gradientCheck?.IsChecked == true });
+    }
 }

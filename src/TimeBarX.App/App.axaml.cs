@@ -101,6 +101,10 @@ public partial class App : Application
     private void HandleUri(string uri)
     {
         if (!UriCommand.TryParse(uri, out var cmd)) return;
+        // URI automation is a Pro feature: non-Pro users see all timebarx://
+        // commands silently no-op. Silent (no toast/popup) is deliberate —
+        // automation runs unattended and shouldn't surface upgrade nags.
+        if (!Controller.Entitlements.IsPro) return;
         switch (cmd.Kind)
         {
             case UriCommandKind.Start:
