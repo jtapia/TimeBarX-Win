@@ -11,12 +11,25 @@ namespace TimeBarX.App;
 
 public partial class App : Application
 {
-    // Phase 1: wire a MockEntitlements so dev builds can flip Pro via TIMEBARX_PRO=1.
-    // Phase 2 will replace MockEntitlements with StoreEntitlements on Windows.
+    // Pick the entitlement source per target:
+    //   - Store build (net10.0-windows10.0.19041.0): real StoreContext via
+    //     StoreEntitlements. Pro state is queried from the Microsoft Store on
+    //     launch and refreshed on Settings open.
+    //   - Cross-platform / dev build (plain net10.0): MockEntitlements that
+    //     reads TIMEBARX_PRO=1 from the env. Lets macOS dev box keep building.
     public TrayController Controller { get; } = new(
         new TimeBarX.Core.JsonTimerStore(),
         new TimeBarX.Core.JsonSettingsStore(),
-        new TimeBarX.App.Store.MockEntitlements());
+        CreateEntitlements());
+
+    private static TimeBarX.Core.IEntitlements CreateEntitlements()
+    {
+#if WINDOWS
+        return new TimeBarX.App.Store.StoreEntitlements();
+#else
+        return new TimeBarX.App.Store.MockEntitlements();
+#endif
+    }
 
     public DisplayManager? Displays { get; private set; }
 
@@ -168,6 +181,25 @@ public partial class App : Application
     private void OnTrayIconClicked(object? sender, System.EventArgs e) => OpenSettings();
 
     private void OnSettingsClicked(object? sender, System.EventArgs e) => OpenSettings();
+
+    // Phase 2: prove the entitlement signal works end-to-end. No UI gates yet —
+    // Phase 3 wires the lock chips and upgrade modal. On the Store target this
+    // opens the real Microsoft Store purchase flow; on cross-platform/dev it
+    // toggles MockEntitlements so we can exercise Changed-driven re-renders.
+    private void OnBuyProClicked(object? sender, System.EventArgs e)
+    {
+#if WINDOWS
+        if (Controller.Entitlements is TimeBarX.App.Store.StoreEntitlements store)
+        {
+            _ = store.BuyAsync();
+        }
+#else
+        if (Controller.Entitlements is TimeBarX.App.Store.MockEntitlements mock)
+        {
+            mock.SetPro(!mock.IsPro);
+        }
+#endif
+    }
 
     private void OpenSettings()
     {

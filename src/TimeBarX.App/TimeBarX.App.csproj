@@ -1,7 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
+    <!--
+      Multi-target so we can call Windows.Services.Store (WinRT) for Pro IAP on
+      the Store target while keeping a cross-platform target for macOS dev and
+      CI tests. The Store target sets TargetPlatformVersion so the WinRT
+      projection (Microsoft.Windows.SDK.NET.Ref) is available.
+        - net10.0                        — dev/test (macOS dev box, CI). No WinRT.
+        - net10.0-windows10.0.19041.0    — Store build with StoreContext.
+    -->
+    <TargetFrameworks>net10.0;net10.0-windows10.0.19041.0</TargetFrameworks>
+    <SupportedOSPlatformVersion Condition="'$(TargetFramework)' == 'net10.0-windows10.0.19041.0'">10.0.19041.0</SupportedOSPlatformVersion>
+    <!-- Lets restore/build the net10.0-windows TFM on macOS/Linux dev boxes;
+         the Windows TFM still only RUNS on Windows, but cross-platform restore
+         needs to pull its references rather than refusing the target. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
