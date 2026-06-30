@@ -5,10 +5,11 @@
         x:DataType="local:TrayController"
         Title="TimeBarX Settings"
         WindowStartupLocation="CenterScreen"
-        Width="520" Height="420"
+        Width="520" Height="540"
         CanResize="False">
     <TabControl Margin="12">
         <TabItem Header="General">
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="12" Spacing="14">
                 <TextBlock Text="Default duration" FontWeight="SemiBold" />
                 <StackPanel Orientation="Horizontal" Spacing="8">
@@ -58,9 +59,11 @@
                                Text="Experimental — may not work with all applications. Some games or anti-cheat systems may behave unexpectedly." />
                 </Border>
             </StackPanel>
+          </ScrollViewer>
         </TabItem>
 
         <TabItem Header="Appearance">
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
             <StackPanel Margin="12" Spacing="14">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <TextBlock Text="Color" FontWeight="SemiBold" />
@@ -120,6 +123,7 @@
                     </Border>
                 </StackPanel>
             </StackPanel>
+          </ScrollViewer>
         </TabItem>
 
         <TabItem Header="Shortcuts">
@@ -127,9 +131,14 @@
                 <TextBlock Text="Quick timer input" FontWeight="SemiBold" />
                 <TextBlock Text="Ctrl + Shift + T" FontFamily="Cascadia Mono,Consolas,monospace" />
                 <Separator />
-                <TextBlock Text="Automation" FontWeight="SemiBold" />
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="Automation" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <Border Background="#1E3A8A" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                        <TextBlock Text="Pro" Foreground="#DBEAFE" FontSize="10" FontWeight="SemiBold" />
+                    </Border>
+                </StackPanel>
                 <TextBlock TextWrapping="Wrap"
-                           Text="TimeBarX accepts timebarx:// URIs. See INTEGRATIONS.md for PowerToys, Flow Launcher, and AutoHotkey examples." />
+                           Text="With Pro, TimeBarX accepts timebarx:// URIs. See INTEGRATIONS.md for PowerToys, Flow Launcher, and AutoHotkey examples. (Without Pro these commands are ignored.)" />
             </StackPanel>
         </TabItem>
 
