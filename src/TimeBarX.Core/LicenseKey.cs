@@ -31,7 +31,7 @@ public static class LicenseKey
     /// constant <c>TIMEBARX_LICENSE_SECRET</c>, or override in tests via the
     /// secret parameter on <see cref="TryVerify"/> / <see cref="Issue"/>.
     /// </summary>
-    public const string DefaultSecret = "timebarx-direct-channel-v1";
+    public const string DefaultSecret = "adf7b582786f421de3a36eae2891895ca829f55033791ad1";
 
     /// <summary>
     /// Verifies a license key against the secret. Returns <c>true</c> and the

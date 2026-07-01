@@ -2,12 +2,9 @@
 <!--
     MSIX package manifest for the Microsoft Store build.
 
-    The Identity / Publisher fields below are PLACEHOLDERS. Replace them with
-    the values you get from Partner Center after reserving the "TimeBarX" name:
-      - Name           : Partner Center → App identity → Package family name (the part before "_xxx")
-      - Publisher      : Partner Center → App identity → Publisher (full CN=... string)
-      - PublisherDisplayName : your developer display name
-    See STORE_SUBMISSION.md for the walkthrough.
+    Identity fields below come from Partner Center → Product identity for the
+    "TimeBarX" product. Package Family Name is EduardoTapia.TimeBarX_xwsez2c29kra6
+    (used by Windows to identify installs; auto-derived from Name + Publisher).
 
     The Inno-installed direct build does NOT use this manifest — it's Store-only.
 -->
@@ -19,13 +16,13 @@
     IgnorableNamespaces="uap uap3 rescap">
 
   <Identity
-      Name="PLACEHOLDER.TimeBarX"
-      Publisher="CN=PLACEHOLDER_PUBLISHER_GUID"
+      Name="EduardoTapia.TimeBarX"
+      Publisher="CN=B6CC8531-4303-4362-AE49-B4EF696B4040"
       Version="0.1.0.0" />
 
   <Properties>
     <DisplayName>TimeBarX</DisplayName>
-    <PublisherDisplayName>PLACEHOLDER_PUBLISHER_NAME</PublisherDisplayName>
+    <PublisherDisplayName>Eduardo Tapia</PublisherDisplayName>
     <Logo>assets\store-tiles\StoreLogo.png</Logo>
   </Properties>
 

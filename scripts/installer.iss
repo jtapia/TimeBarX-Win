@@ -1,11 +1,35 @@
 ; TimeBarX — Inno Setup script
-; Build the app first: pwsh scripts/publish.ps1
-; Then compile: iscc scripts/installer.iss
+;
+; Build the app first: pwsh scripts/publish.ps1 [-Runtime win-x64|win-arm64]
+; Then compile:
+;   iscc scripts/installer.iss                     ; x64 (default)
+;   iscc /DArch=arm64 scripts/installer.iss        ; ARM64
+;
+; The Arch flag drives both which artifacts/publish-<rid>/ dir is packaged and
+; which OutputBaseFilename Inno emits, so the two architectures don't clobber
+; each other's outputs.
 
 #define AppName "TimeBarX"
 #define AppVersion "0.1.0"
 #define Publisher "TimeBarX"
 #define ExeName "TimeBarX.App.exe"
+
+; Default to x64 when the -DArch flag isn't set.
+#ifndef Arch
+  #define Arch "x64"
+#endif
+
+#if Arch == "arm64"
+  #define OutputName "TimeBarX-Setup-arm64"
+  #define PublishDir "..\artifacts\publish-win-arm64"
+  #define ArchAllowed "arm64"
+  #define ArchInstallIn64Bit "arm64"
+#else
+  #define OutputName "TimeBarX-Setup"
+  #define PublishDir "..\artifacts\publish-win-x64"
+  #define ArchAllowed "x64compatible"
+  #define ArchInstallIn64Bit "x64compatible"
+#endif
 
 [Setup]
 AppId={{B89A5D2A-1F4B-4E6A-9D7A-TIMEBARX0001}
@@ -17,12 +41,15 @@ DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 OutputDir=..\artifacts\installer
 ; Filename is stable across versions; the version lives in the URL path
-; (gettimebarx.com/download/<version>/TimeBarX-Setup.exe) and in AppVersion
-; above (Add/Remove Programs / Partner Center read it from the manifest).
-OutputBaseFilename=TimeBarX-Setup
+; (downloads.gettimebarx.com/<version>/TimeBarX-Setup(-arm64)?.exe) and in
+; AppVersion above (Add/Remove Programs / Partner Center read it from the manifest).
+OutputBaseFilename={#OutputName}
 Compression=lzma2
 SolidCompression=yes
-ArchitecturesInstallIn64BitMode=x64
+; Refuse to install on the wrong architecture — Windows will offer to fetch the
+; correct package from the Store instead of running the emulated fallback.
+ArchitecturesAllowed={#ArchAllowed}
+ArchitecturesInstallIn64BitMode={#ArchInstallIn64Bit}
 PrivilegesRequired=lowest
 UninstallDisplayIcon={app}\{#ExeName}
 SetupIconFile=..\assets\icon.ico
@@ -38,8 +65,8 @@ Name: "startuprun"; Description: "Start TimeBarX when I sign in"; GroupDescripti
 [Files]
 ; Exclude PDB symbols from the installer — they ship debug info, bloat the
 ; installer by ~5–15 MB, and aren't needed for production users. Keep them in
-; artifacts/publish/ for local debugging; just don't bundle them.
-Source: "..\artifacts\publish\*"; DestDir: "{app}"; \
+; the publish dir for local debugging; just don't bundle them.
+Source: "{#PublishDir}\*"; DestDir: "{app}"; \
   Excludes: "*.pdb"; \
   Flags: ignoreversion recursesubdirs createallsubdirs
 

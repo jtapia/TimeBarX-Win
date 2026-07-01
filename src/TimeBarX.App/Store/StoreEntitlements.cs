@@ -28,10 +28,12 @@ namespace TimeBarX.App.Store;
 public sealed class StoreEntitlements : IEntitlements
 {
     /// <summary>
-    /// Placeholder. Replace with the real Partner Center Store ID for the
-    /// "TimeBarX Pro" durable add-on once it's reserved.
+    /// Partner Center Store ID for the "TimeBarX Pro" durable add-on
+    /// (product EduardoTapia.TimeBarX / parent app 9P7B5MKF79DW). Queried by
+    /// GetUserCollectionAsync on launch and after every purchase attempt to
+    /// determine whether the user owns Pro.
     /// </summary>
-    public const string ProStoreId = "PLACEHOLDER_TIMEBARX_PRO_STORE_ID";
+    public const string ProStoreId = "9P80PM9PK9ND";
 
     private readonly StoreContext _context;
     private readonly string _addonStoreId;

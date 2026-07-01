@@ -8,7 +8,10 @@ param(
     # is compiled in (the plain net10.0 TFM would fall back to MockEntitlements,
     # which grants Pro from a TIMEBARX_PRO env var — not something to ship).
     [string]$Framework = 'net10.0-windows10.0.19041.0',
-    [string]$OutDir = (Join-Path $PSScriptRoot '..\artifacts\publish')
+    # Default to arch-specific publish dir so x64 and arm64 don't clobber each
+    # other. scripts/installer.iss reads from ..\artifacts\publish-<Runtime>\
+    # by the same convention (see the Arch flag in installer.iss).
+    [string]$OutDir = (Join-Path $PSScriptRoot "..\artifacts\publish-$Runtime")
 )
 
 $ErrorActionPreference = 'Stop'

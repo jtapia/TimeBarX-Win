@@ -18,25 +18,41 @@ both work; the commands below use PowerShell.
 
 ---
 
-## 2. Publish the self-contained build
+## 2. Publish the self-contained build(s)
+
+Publish once per architecture you want to ship. The output dir is
+per-runtime (`artifacts/publish-<runtime>/`) so architectures don't clobber
+each other's binaries.
 
 ```pwsh
+# x64 (required)
 pwsh scripts/publish.ps1
+
+# ARM64 (optional — for native performance on Copilot+ / Surface Pro X)
+pwsh scripts/publish.ps1 -Runtime win-arm64
 ```
 
-Output lands in `artifacts/publish/`. The EXE is a single file with the
-.NET runtime embedded.
+Each EXE is a single self-contained file with the .NET runtime embedded.
+
+> ARM64 users on Win11 24H2+ already run x64 apps via Prism emulation, so
+> shipping only x64 works. Ship ARM64 too if you have Copilot+ users; skip
+> it for early releases.
 
 ---
 
-## 3. Sign the EXE
+## 3. Sign the EXE(s)
 
 See `SIGNING.md` for the full incantation. Summary:
 
 ```pwsh
 signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
     /f $env:USERPROFILE\.timebarx\signing.pfx /p $pwd `
-    artifacts\publish\TimeBarX.App.exe
+    artifacts\publish-win-x64\TimeBarX.App.exe
+
+# Repeat for ARM64 if you built it:
+signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
+    /f $env:USERPROFILE\.timebarx\signing.pfx /p $pwd `
+    artifacts\publish-win-arm64\TimeBarX.App.exe
 ```
 
 Sign the EXE before building the installer so the installer ships a signed
@@ -44,24 +60,38 @@ inner binary.
 
 ---
 
-## 4. Build the installer
+## 4. Build the installer(s)
 
 ```pwsh
+# x64 installer → artifacts/installer/TimeBarX-Setup.exe
 iscc scripts\installer.iss
+
+# ARM64 installer → artifacts/installer/TimeBarX-Setup-arm64.exe
+iscc /DArch=arm64 scripts\installer.iss
 ```
 
-Output: `artifacts/installer/TimeBarX-<version>-Setup.exe`.
+The `Arch` flag drives both which `artifacts/publish-<rid>/` dir gets
+packaged and the `OutputBaseFilename`. The two installers coexist in
+`artifacts/installer/` under stable filenames (version lives in the
+Partner Center package URL path, not the filename).
 
 ---
 
-## 5. Sign the installer
+## 5. Sign the installer(s)
 
 ```pwsh
 signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
     /f $env:USERPROFILE\.timebarx\signing.pfx /p $pwd `
-    artifacts\installer\TimeBarX-<version>-Setup.exe
+    artifacts\installer\TimeBarX-Setup.exe
 
-signtool verify /pa /v artifacts\installer\TimeBarX-<version>-Setup.exe
+signtool verify /pa /v artifacts\installer\TimeBarX-Setup.exe
+
+# ARM64:
+signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 `
+    /f $env:USERPROFILE\.timebarx\signing.pfx /p $pwd `
+    artifacts\installer\TimeBarX-Setup-arm64.exe
+
+signtool verify /pa /v artifacts\installer\TimeBarX-Setup-arm64.exe
 ```
 
 `signtool verify` must end with `Successfully verified`.
