@@ -55,8 +55,11 @@
         <!-- timebarx:// URI scheme — same as the Inno installer registers via the
              registry, exposed here through the MSIX protocol-handler extension. -->
         <uap:Extension Category="windows.protocol">
-          <uap:Protocol Name="timebarx" DisplayName="TimeBarX timer">
+          <!-- DisplayName is a child element, not an attribute, per the uap schema.
+               Order matters: Logo must come before DisplayName inside uap:Protocol. -->
+          <uap:Protocol Name="timebarx">
             <uap:Logo>assets\store-tiles\Square44x44Logo.png</uap:Logo>
+            <uap:DisplayName>TimeBarX timer</uap:DisplayName>
           </uap:Protocol>
         </uap:Extension>
       </Extensions>

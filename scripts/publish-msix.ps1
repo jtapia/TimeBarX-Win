@@ -60,11 +60,25 @@ $layoutAssets = Join-Path $layout 'assets\store-tiles'
 New-Item -ItemType Directory -Force -Path $layoutAssets | Out-Null
 Copy-Item -Path (Join-Path $root 'assets/store-tiles/*.png') -Destination $layoutAssets -Force
 
-# Locate makeappx.exe in the latest installed Windows SDK.
-$kit = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.*\x64' -ErrorAction Stop |
-    Sort-Object Name -Descending | Select-Object -First 1
-$makeappx = Join-Path $kit.FullName 'makeappx.exe'
-if (-not (Test-Path $makeappx)) { throw "makeappx.exe not found under $($kit.FullName). Install the Windows 10/11 SDK." }
+# Locate the newest installed Windows SDK that actually ships makeappx.exe.
+# Old SDKs (10.0.14393.0 and earlier) don't include it; a plain string sort of
+# directory names picks the wrong SDK when both old and new are installed
+# (e.g. "10.0.9200.0" > "10.0.22621.0" alphabetically). Filter by presence of
+# makeappx.exe first, then sort by parsed version and take the max.
+$sdkParent = 'C:\Program Files (x86)\Windows Kits\10\bin'
+if (-not (Test-Path $sdkParent)) {
+    throw "Windows SDK not installed. Install a modern SDK (10.0.22621 or newer) via 'winget install Microsoft.WindowsSDK.10.0.22621' or the SDK installer at https://developer.microsoft.com/windows/downloads/windows-sdk/."
+}
+$kit = Get-ChildItem $sdkParent -Directory |
+    Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } |
+    Where-Object { Test-Path (Join-Path $_.FullName 'x64\makeappx.exe') } |
+    Sort-Object { [Version]$_.Name } -Descending |
+    Select-Object -First 1
+if (-not $kit) {
+    throw "Found Windows SDK(s) under $sdkParent, but none contain x64\makeappx.exe. Install SDK 10.0.22621 or newer (older SDKs don't ship makeappx)."
+}
+$makeappx = Join-Path $kit.FullName 'x64\makeappx.exe'
+Write-Host "Using SDK $($kit.Name) for makeappx.exe"
 
 $msix = Join-Path $OutDir 'TimeBarX.msix'
 if (Test-Path $msix) { Remove-Item $msix -Force }
