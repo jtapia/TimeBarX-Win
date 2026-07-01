@@ -53,6 +53,17 @@ dotnet publish $proj `
     -p:DebugType=embedded `
     -o $layout
 
+# Third-party native NuGets (SkiaSharp, HarfBuzzSharp) ship their .pdb debug
+# symbols alongside their .dlls, and `dotnet publish` copies them into the
+# output. They're not needed at runtime and add ~100MB uncompressed to the
+# package (SkiaSharp alone is 84MB). Strip them before packing.
+$pdbs = Get-ChildItem $layout -Recurse -Filter '*.pdb' -ErrorAction SilentlyContinue
+if ($pdbs) {
+    $totalMb = [Math]::Round(($pdbs | Measure-Object Length -Sum).Sum / 1MB, 1)
+    Write-Host "Stripping $($pdbs.Count) .pdb file(s), ~${totalMb} MB total, from the MSIX layout"
+    $pdbs | Remove-Item -Force
+}
+
 # Drop manifest + Store tiles into the layout. The manifest's relative paths
 # (assets\store-tiles\*.png) resolve from the package root, so we mirror that.
 Copy-Item -Path $Manifest -Destination (Join-Path $layout 'AppxManifest.xml') -Force
