@@ -68,9 +68,10 @@ public sealed class TrayController : INotifyPropertyChanged
     public bool PlayCompletionSound => _settings.PlayCompletionSound;
 
     /// <summary>
-    /// Single source of truth for Pro state. Phase 1 wires the abstraction;
-    /// later phases consume it (clamp <see cref="Settings"/>, gate Pro-only UI,
-    /// route the URI automation). Free until a platform impl replaces the default.
+    /// Single source of truth for Pro state. Consumed to clamp
+    /// <see cref="Settings"/>, gate Pro-only UI, and drive lock-chip
+    /// re-renders on transitions. Free until a platform impl replaces the
+    /// default in <c>App.axaml.cs</c>.
     /// </summary>
     public IEntitlements Entitlements { get; }
 

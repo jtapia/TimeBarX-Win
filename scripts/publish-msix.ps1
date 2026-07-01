@@ -12,8 +12,10 @@ param(
 #   - .NET 10 SDK
 #   - Windows 10/11 SDK (provides makeappx.exe and signtool.exe)
 #     Default install path: C:\Program Files (x86)\Windows Kits\10\bin\10.0.*\x64\
-#   - You've reserved the app name in Partner Center and copied the Identity +
-#     Publisher values into Package.appxmanifest (replace the PLACEHOLDER_* lines).
+#   - Package.appxmanifest already has the Partner Center Identity + Publisher
+#     values filled in. If Partner Center ever rotates them, update the manifest
+#     before running this script — the packed MSIX must match the product
+#     identity or upload is rejected.
 #
 # What this script does NOT do:
 #   - Sign the package. Partner Center accepts unsigned .msix and signs it for you

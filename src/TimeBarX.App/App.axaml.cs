@@ -283,10 +283,10 @@ public partial class App : Application
 
     private void OnSettingsClicked(object? sender, System.EventArgs e) => OpenSettings();
 
-    // Phase 2: prove the entitlement signal works end-to-end. No UI gates yet —
-    // Phase 3 wires the lock chips and upgrade modal. On the Store target this
-    // opens the real Microsoft Store purchase flow; on cross-platform/dev it
-    // toggles MockEntitlements so we can exercise Changed-driven re-renders.
+    // On the Store target this opens the real Microsoft Store purchase flow;
+    // on cross-platform/dev builds it toggles MockEntitlements so the lock
+    // chips, upgrade dialog, and Changed-driven re-renders can be exercised
+    // without a signed MSIX.
     private void OnBuyProClicked(object? sender, System.EventArgs e)
     {
 #if WINDOWS

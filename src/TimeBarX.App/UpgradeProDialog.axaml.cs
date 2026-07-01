@@ -59,8 +59,9 @@ public partial class UpgradeProDialog : Window
 #endif
         if (_entitlements is MockEntitlements mock)
         {
-            // Dev affordance: flip Pro on so we can exercise the Phase 3 gates
-            // on macOS / non-Store builds. Not shipped to Store users.
+            // Dev affordance: flip Pro on so we can exercise the Pro-only
+            // gates on macOS / non-Store builds. Not reachable in Store builds
+            // (the entitlement source is StoreEntitlements, not MockEntitlements).
             mock.SetPro(true);
             Close();
             return;

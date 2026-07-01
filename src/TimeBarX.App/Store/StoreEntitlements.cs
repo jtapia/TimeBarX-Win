@@ -17,21 +17,23 @@ namespace TimeBarX.App.Store;
 ///     advisory until <see cref="RefreshAsync"/> has completed at least once.
 ///     We default to <c>false</c> (fail closed) until the first refresh, so
 ///     transient launch states don't grant Pro to a non-purchaser.
-///   - We refresh on construction (fire-and-forget), and the host should call
-///     <see cref="RefreshAsync"/> on app focus / Settings open. Phase 2 only
-///     wires construction-time refresh; later phases add the cadence.
+///   - We refresh on construction (fire-and-forget). <see cref="BuyAsync"/>
+///     re-refreshes on its own after a successful purchase, and the "Restore
+///     purchases" button in <c>UpgradeProDialog</c> calls
+///     <see cref="RefreshAsync"/> directly. Callers can invoke it themselves
+///     if they need a fresh signal outside those paths.
 ///   - The Store ID for the "TimeBarX Pro" durable add-on is configured via
 ///     <c>TIMEBARX_PRO_STORE_ID</c> (env var) or the <see cref="ProStoreId"/>
-///     constant. The placeholder ships with the code; Partner Center setup
-///     swaps in the real ID. Until then, <see cref="IsPro"/> stays false.
+///     constant. The env var lets a signed build be pointed at a sandbox
+///     add-on without a rebuild.
 /// </summary>
 public sealed class StoreEntitlements : IEntitlements
 {
     /// <summary>
     /// Partner Center Store ID for the "TimeBarX Pro" durable add-on
-    /// (product EduardoTapia.TimeBarX / parent app 9P7B5MKF79DW). Queried by
-    /// GetUserCollectionAsync on launch and after every purchase attempt to
-    /// determine whether the user owns Pro.
+    /// (parent app: EduardoTapia.TimeBarX). Queried by GetUserCollectionAsync
+    /// on launch and after every purchase attempt to determine whether the
+    /// user owns Pro.
     /// </summary>
     public const string ProStoreId = "9P80PM9PK9ND";
 

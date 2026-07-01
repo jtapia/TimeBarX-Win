@@ -12,6 +12,11 @@ assets/icon.ico
 *.user
 .serena/
 
+# Auto-generated per-directory notes from the claude-mem plugin.
+# Top-level CLAUDE.md (if any) is intentional; the nested ones are cruft.
+**/CLAUDE.md
+!/CLAUDE.md
+
 # OS cruft
 .DS_Store
 Thumbs.db
