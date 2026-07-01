@@ -187,7 +187,16 @@ public partial class OverlayWindow : Window
         // values (gradient, custom color, position, always-above) to free
         // behavior without losing the stored values.
         var settings = _boundController.EffectiveSettings;
-        Opacity = settings.Opacity;
+        // The completion animator owns Opacity while it's playing (pulse/fade
+        // frames) and after it finishes (leaves the window at 0). Restoring
+        // settings.Opacity here would either fight the animator's per-frame
+        // writes or flash the fully-filled bar back into view on the next
+        // SettingsChanged (e.g. opening the Settings window post-completion).
+        // Matches the ApplyBarColor guard below.
+        if (_animator is null || (!_animator.IsActive && !_animator.IsFinished))
+        {
+            Opacity = settings.Opacity;
+        }
         ApplyScreenLayout();
         ApplyBarColor();
     }

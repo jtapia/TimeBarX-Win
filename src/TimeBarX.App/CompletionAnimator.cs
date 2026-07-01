@@ -30,8 +30,16 @@ internal sealed class CompletionAnimator
     private readonly DispatcherTimer _timer;
     private readonly DateTimeOffset _startedAt = DateTimeOffset.UtcNow;
     private bool _cancelled;
+    private bool _finished;
 
     public bool IsActive => _timer.IsEnabled && !_cancelled;
+
+    /// <summary>
+    /// True once the fade-out phase completed on its own (not cancelled). The
+    /// overlay is left at <c>Opacity = 0</c>; callers must not restore opacity
+    /// from settings until a new timer starts.
+    /// </summary>
+    public bool IsFinished => _finished;
 
     public CompletionAnimator(Window window, Rectangle bar, IBrush restingBrush, IBrush flashBrush, double restingOpacity = 1.0)
     {
@@ -100,5 +108,6 @@ internal sealed class CompletionAnimator
 
         _timer.Stop();
         _window.Opacity = 0.0;
+        _finished = true;
     }
 }
