@@ -249,16 +249,7 @@ public partial class App : Application
         return d.ToString();
     }
 
-    private void ShowUpgradeFromTray()
-    {
-        // Open the upgrade dialog without an owner window — the tray-menu path
-        // doesn't have one, and ShowDialog(null) isn't supported on Avalonia. Use
-        // Show() instead so the modal is a floating window the user can close.
-        // Pass the concrete PurchaseChannel (not the composed entitlement) so the
-        // dialog's Buy/Restore type checks match.
-        var dialog = new UpgradeProDialog(PurchaseChannel);
-        dialog.Show();
-    }
+    private void ShowUpgradeFromTray() => ShowUpgradeDialog();
 
     private void StartPreset(int minutes)
         => Controller.StartCustom(System.TimeSpan.FromMinutes(minutes), $"{minutes}m");
@@ -291,10 +282,38 @@ public partial class App : Application
     //      previously the tray path called store.BuyAsync() fire-and-forget
     //      and swallowed the StorePurchaseStatus, so any failure looked like
     //      the click did nothing.
-    private void OnBuyProClicked(object? sender, System.EventArgs e)
+    private void OnBuyProClicked(object? sender, System.EventArgs e) => ShowUpgradeDialog();
+
+    private UpgradeProDialog? _upgradeDialog;
+
+    /// <summary>
+    /// Opens the Pro upgrade dialog from a tray/menu context (no owner window).
+    /// A bare Show() with no owner can land off-screen or behind everything —
+    /// which is why "Buy Pro" looked like it did nothing — so we center it and
+    /// pull it to the foreground. Reused across the "Buy Pro…" and
+    /// "Add custom preset…" tray entries; a single instance is kept so repeated
+    /// clicks re-focus rather than stack windows.
+    /// </summary>
+    private void ShowUpgradeDialog()
     {
+        if (_upgradeDialog is not null)
+        {
+            _upgradeDialog.Activate();
+            return;
+        }
+
+        // PurchaseChannel is the concrete StoreEntitlements/MockEntitlements —
+        // NOT the composed Controller.Entitlements — so the dialog's Buy/Restore
+        // type checks match.
         var dialog = new UpgradeProDialog(PurchaseChannel);
+        _upgradeDialog = dialog;
+        dialog.Closed += (_, _) => _upgradeDialog = null;
+
+        dialog.WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        dialog.Topmost = true;
         dialog.Show();
+        dialog.Activate();
+        dialog.Topmost = false;
     }
 
     private void OpenSettings()
