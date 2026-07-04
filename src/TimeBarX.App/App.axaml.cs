@@ -283,23 +283,18 @@ public partial class App : Application
 
     private void OnSettingsClicked(object? sender, System.EventArgs e) => OpenSettings();
 
-    // On the Store target this opens the real Microsoft Store purchase flow;
-    // on cross-platform/dev builds it toggles MockEntitlements so the lock
-    // chips, upgrade dialog, and Changed-driven re-renders can be exercised
-    // without a signed MSIX.
+    // Tray "Buy Pro…" opens the same upgrade dialog the SettingsWindow lock
+    // chips do, rather than calling BuyAsync directly. Two reasons:
+    //   1. Consistent UX everywhere the user can start the purchase.
+    //   2. The dialog surfaces status (network error, unsigned-package error,
+    //      "already purchased") and exposes Restore + license-key entry —
+    //      previously the tray path called store.BuyAsync() fire-and-forget
+    //      and swallowed the StorePurchaseStatus, so any failure looked like
+    //      the click did nothing.
     private void OnBuyProClicked(object? sender, System.EventArgs e)
     {
-#if WINDOWS
-        if (Controller.Entitlements is TimeBarX.App.Store.StoreEntitlements store)
-        {
-            _ = store.BuyAsync();
-        }
-#else
-        if (Controller.Entitlements is TimeBarX.App.Store.MockEntitlements mock)
-        {
-            mock.SetPro(!mock.IsPro);
-        }
-#endif
+        var dialog = new UpgradeProDialog(PurchaseChannel);
+        dialog.Show();
     }
 
     private void OpenSettings()

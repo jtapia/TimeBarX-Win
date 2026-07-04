@@ -204,7 +204,10 @@ public partial class OverlayWindow : Window
     private void ApplyBarColor()
     {
         if (_progressBar is null || _boundController is null) return;
-        if (_animator is { IsActive: true }) return; // animator owns the brush mid-sequence
+        // Animator owns the brush mid-sequence, and after it finishes the window
+        // sits at Opacity=0 until a new timer resets it — repainting then is
+        // pointless. Mirrors the Opacity guard in ApplySettings.
+        if (_animator is { IsActive: true } or { IsFinished: true }) return;
         var rgb = BarColorPalette.ForProgress(_boundController.EffectiveSettings, _boundController.Progress);
         if (_barBrush is null || _lastBarRgb != rgb)
         {
