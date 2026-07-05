@@ -95,12 +95,18 @@ public sealed class StoreEntitlements : IEntitlements
     /// </summary>
     public string? LastError { get; private set; }
 
-    public async Task<StorePurchaseStatus> BuyAsync()
+    public async Task<StorePurchaseStatus> BuyAsync(IntPtr ownerHwnd)
     {
         LastError = null;
         if (LooksLikePlaceholder(_addonStoreId)) return StorePurchaseStatus.NotPurchased;
         try
         {
+            // Desktop apps must associate StoreContext with a top-level HWND
+            // before RequestPurchaseAsync — otherwise the runtime can't parent
+            // the purchase dialog and throws "Invalid window handle" (0x80070578).
+            // GetUserCollectionAsync doesn't need this, which is why refresh
+            // worked but purchase did not.
+            WinRT.Interop.InitializeWithWindow.Initialize(_context, ownerHwnd);
             var result = await _context.RequestPurchaseAsync(_addonStoreId).AsTask().ConfigureAwait(false);
             if (result.Status is StorePurchaseStatus.Succeeded or StorePurchaseStatus.AlreadyPurchased)
             {

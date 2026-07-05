@@ -46,7 +46,13 @@ public partial class UpgradeProDialog : Window
         if (_entitlements is StoreEntitlements store)
         {
             ShowStatus("Opening Microsoft Store…");
-            var status = await store.BuyAsync().ConfigureAwait(true);
+            var hwnd = TryGetHwnd();
+            if (hwnd == IntPtr.Zero)
+            {
+                ShowStatus("Purchase did not complete (no window handle available).");
+                return;
+            }
+            var status = await store.BuyAsync(hwnd).ConfigureAwait(true);
             if (status is Windows.Services.Store.StorePurchaseStatus.Succeeded
                 or Windows.Services.Store.StorePurchaseStatus.AlreadyPurchased)
             {
@@ -111,6 +117,16 @@ public partial class UpgradeProDialog : Window
             return;
         }
         ShowStatus("That key didn't verify. Check for typos or paste again from your purchase email.");
+    }
+
+    private IntPtr TryGetHwnd()
+    {
+        // Avalonia exposes the native window handle through the platform impl.
+        // On Windows this is the top-level HWND that WinRT.Interop needs to
+        // parent the Store purchase dialog. Returns Zero if the window hasn't
+        // been shown yet (native handle isn't created until first show).
+        var handle = TryGetPlatformHandle();
+        return handle?.Handle ?? IntPtr.Zero;
     }
 
     private void ShowStatus(string text)

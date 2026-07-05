@@ -18,7 +18,7 @@
   <Identity
       Name="EduardoTapia.TimeBarX"
       Publisher="CN=B6CC8531-4303-4362-AE49-B4EF696B4040"
-      Version="1.0.1.0" />
+      Version="1.0.3.0" />
 
   <Properties>
     <DisplayName>TimeBarX</DisplayName>
