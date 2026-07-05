@@ -93,8 +93,11 @@ public sealed class StoreEntitlements : IEntitlements
     /// Returns the raw <see cref="StorePurchaseStatus"/> so the caller can
     /// distinguish "already owned" from "succeeded" for the UX toast.
     /// </summary>
+    public string? LastError { get; private set; }
+
     public async Task<StorePurchaseStatus> BuyAsync()
     {
+        LastError = null;
         if (LooksLikePlaceholder(_addonStoreId)) return StorePurchaseStatus.NotPurchased;
         try
         {
@@ -103,10 +106,13 @@ public sealed class StoreEntitlements : IEntitlements
             {
                 await RefreshAsync().ConfigureAwait(false);
             }
+            if (result.ExtendedError is { } err)
+                LastError = $"HRESULT=0x{err.HResult:X8} {err.Message}";
             return result.Status;
         }
-        catch
+        catch (Exception ex)
         {
+            LastError = $"{ex.GetType().Name}: {ex.Message} (HRESULT=0x{ex.HResult:X8})";
             return StorePurchaseStatus.NetworkError;
         }
     }

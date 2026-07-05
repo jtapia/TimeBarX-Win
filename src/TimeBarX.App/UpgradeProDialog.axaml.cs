@@ -53,7 +53,8 @@ public partial class UpgradeProDialog : Window
                 Close();
                 return;
             }
-            ShowStatus($"Purchase did not complete ({status}).");
+            var detail = store.LastError is { } err ? $"\n{err}" : "";
+            ShowStatus($"Purchase did not complete ({status}).{detail}");
             return;
         }
 #endif
