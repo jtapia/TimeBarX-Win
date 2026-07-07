@@ -15,7 +15,7 @@
         </StackPanel>
 
         <TextBlock TextWrapping="Wrap"
-                   Text="A one-time $4.99 unlock for power users — no subscription, no account." />
+                   Text="A one-time unlock for power users — $2.99 introductory sale (regular $4.99). No subscription, no account." />
 
         <StackPanel Spacing="6">
             <TextBlock Text="• Custom colors and gradient mode" />
@@ -27,7 +27,7 @@
         <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
             <Button Name="DismissButton" Content="Not now" Click="OnDismissClicked" />
             <Button Name="RestoreButton" Content="Restore Purchase" Click="OnRestoreClicked" />
-            <Button Name="BuyButton" Content="Unlock $4.99" Click="OnBuyClicked"
+            <Button Name="BuyButton" Content="Unlock $2.99" Click="OnBuyClicked"
                     Background="#2563EB" Foreground="White" FontWeight="SemiBold" />
         </StackPanel>
 
