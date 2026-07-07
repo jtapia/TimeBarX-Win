@@ -87,14 +87,17 @@ public sealed class StoreEntitlements : IEntitlements
         }
     }
 
+    /// <summary>Human-readable detail from the last failed purchase attempt, if any.</summary>
+    public string? LastError { get; private set; }
+
     /// <summary>
     /// Open the Store purchase flow for the Pro add-on. On success, refreshes
     /// the cached entitlement (which fires <see cref="Changed"/> if it flipped).
     /// Returns the raw <see cref="StorePurchaseStatus"/> so the caller can
     /// distinguish "already owned" from "succeeded" for the UX toast.
     /// </summary>
-    public string? LastError { get; private set; }
-
+    /// <param name="ownerHwnd">Top-level window handle the Store purchase dialog
+    /// is parented to; required on desktop or the call fails with 0x80070578.</param>
     public async Task<StorePurchaseStatus> BuyAsync(IntPtr ownerHwnd)
     {
         LastError = null;
