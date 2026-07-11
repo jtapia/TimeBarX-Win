@@ -9,6 +9,9 @@ public sealed class JsonTimerStore : ITimerStore
     {
         WriteIndented = false,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        // Persist the state as a string so reordering the TimerState enum can't
+        // silently reinterpret an old file (e.g. Running becoming Paused).
+        Converters = { new JsonStringEnumConverter() },
     };
 
     private readonly string _path;
@@ -40,15 +43,15 @@ public sealed class JsonTimerStore : ITimerStore
 
     public void Save(TimerSnapshot snapshot)
     {
-        var dir = Path.GetDirectoryName(_path);
-        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-
-        var tmp = _path + ".tmp";
-        using (var stream = File.Create(tmp))
+        try
         {
-            JsonSerializer.Serialize(stream, snapshot, Options);
+            AtomicFile.WriteJson(_path, snapshot, Options);
         }
-        File.Move(tmp, _path, overwrite: true);
+        catch
+        {
+            // Best-effort persistence of transient timer state; a failed save just
+            // means the timer won't survive a restart, matching Clear's semantics.
+        }
     }
 
     public void Clear()

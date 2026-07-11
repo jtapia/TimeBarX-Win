@@ -59,6 +59,33 @@ public sealed record AppSettings(
         return this with { Opacity = opacity };
     }
 
+    /// <summary>
+    /// Returns a copy with out-of-range or undefined values coerced back to sane
+    /// defaults. Deserialization sets properties directly and bypasses the
+    /// validation in the constructors/helpers, so a hand-edited or corrupt file
+    /// (e.g. Opacity 42.0, or an enum value from another version) would otherwise
+    /// load unclamped. Applied per-field so one bad value doesn't discard the rest.
+    /// </summary>
+    public AppSettings Sanitize()
+    {
+        var opacity = double.IsFinite(Opacity) ? Math.Clamp(Opacity, 0.0, 1.0) : Default.Opacity;
+        var color = Enum.IsDefined(Color) ? Color : Default.Color;
+        var height = Enum.IsDefined(Height) ? Height : Default.Height;
+        var position = Enum.IsDefined(Position) ? Position : Default.Position;
+        var duration = DefaultDuration > TimeSpan.Zero ? DefaultDuration : Default.DefaultDuration;
+
+        return this with
+        {
+            Opacity = opacity,
+            Color = color,
+            Height = height,
+            Position = position,
+            DefaultDuration = duration,
+            HideForProcesses = HideForProcesses ?? DefaultHideList,
+            CustomPresets = CustomPresets ?? Array.Empty<CustomPreset>(),
+        };
+    }
+
     /// <summary>The default bar color used when entitlement clamps non-Pro users.</summary>
     public const BarColor FreeColor = BarColor.Blue;
 

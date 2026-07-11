@@ -31,7 +31,7 @@ public sealed class JsonSettingsStore : ISettingsStore
             if (!File.Exists(_path)) return AppSettings.Default;
             using var stream = File.OpenRead(_path);
             var loaded = JsonSerializer.Deserialize<AppSettings>(stream, Options);
-            return loaded ?? AppSettings.Default;
+            return loaded?.Sanitize() ?? AppSettings.Default;
         }
         catch
         {
@@ -41,14 +41,6 @@ public sealed class JsonSettingsStore : ISettingsStore
 
     public void Save(AppSettings settings)
     {
-        var dir = Path.GetDirectoryName(_path);
-        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-
-        var tmp = _path + ".tmp";
-        using (var stream = File.Create(tmp))
-        {
-            JsonSerializer.Serialize(stream, settings, Options);
-        }
-        File.Move(tmp, _path, overwrite: true);
+        AtomicFile.WriteJson(_path, settings, Options);
     }
 }

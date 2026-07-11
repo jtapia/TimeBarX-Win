@@ -28,11 +28,27 @@ public class AppSettingsTests : IDisposable
     public void Save_then_load_round_trips()
     {
         var store = new JsonSettingsStore(_path);
-        var settings = new AppSettings(BarColor.Purple, BarHeight.Thick, 0.6, GradientMode: true, PlayCompletionSound: true, DefaultDuration: TimeSpan.FromMinutes(50));
+        // Use a fully-specified record so equality isn't sensitive to null lists
+        // being normalized on load (see Sanitize).
+        var settings = AppSettings.Default with
+        {
+            Color = BarColor.Purple,
+            Height = BarHeight.Thick,
+            Opacity = 0.6,
+            GradientMode = true,
+            PlayCompletionSound = true,
+            DefaultDuration = TimeSpan.FromMinutes(50),
+        };
 
         store.Save(settings);
+        var loaded = store.Load();
 
-        Assert.Equal(settings, store.Load());
+        Assert.Equal(settings.Color, loaded.Color);
+        Assert.Equal(settings.Height, loaded.Height);
+        Assert.Equal(settings.Opacity, loaded.Opacity);
+        Assert.Equal(settings.GradientMode, loaded.GradientMode);
+        Assert.Equal(settings.PlayCompletionSound, loaded.PlayCompletionSound);
+        Assert.Equal(settings.DefaultDuration, loaded.DefaultDuration);
     }
 
     [Fact]

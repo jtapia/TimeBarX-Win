@@ -70,4 +70,32 @@ public class JsonTimerStoreTests : IDisposable
 
         Assert.Null(store.Load());
     }
+
+    [Fact]
+    public void State_is_persisted_as_a_string_not_an_integer()
+    {
+        var store = new JsonTimerStore(_path);
+        store.Save(new TimerSnapshot(
+            TimerState.Running, DateTimeOffset.UtcNow, TimeSpan.FromMinutes(5), TimeSpan.Zero, "5m"));
+
+        var json = File.ReadAllText(_path);
+        Assert.Contains("\"Running\"", json);
+        Assert.DoesNotContain("\"State\":1", json);
+    }
+
+    [Fact]
+    public void Concurrent_saves_never_leave_a_corrupt_target()
+    {
+        var store = new JsonTimerStore(_path);
+        var snapshot = new TimerSnapshot(
+            TimerState.Running, DateTimeOffset.UtcNow, TimeSpan.FromMinutes(25), TimeSpan.Zero, "25m");
+
+        Parallel.For(0, 50, _ => store.Save(snapshot));
+
+        // The target must always be a fully-written, parseable file.
+        Assert.NotNull(store.Load());
+        // No leftover temp files in the directory.
+        var dir = Path.GetDirectoryName(_path)!;
+        Assert.Empty(Directory.GetFiles(dir, Path.GetFileName(_path) + ".*.tmp"));
+    }
 }
