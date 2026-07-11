@@ -31,7 +31,13 @@ public sealed class DisplayManager : IDisposable
         first.Show();
         _screens = first.Screens;
 
-        if (_screens is null) return;
+        if (_screens is null)
+        {
+            // No screen info (headless / remote-session edge): don't leave the
+            // shown, unpositioned, unmanaged window lingering until process exit.
+            first.Close();
+            return;
+        }
 
         var primary = _screens.Primary ?? _screens.All.FirstOrDefault();
         if (primary is not null)

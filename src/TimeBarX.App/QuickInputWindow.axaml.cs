@@ -21,6 +21,17 @@ public partial class QuickInputWindow : Window
         _hint = this.FindControl<TextBlock>("HintText");
         _defaultHintBrush = _hint?.Foreground;
         Opened += (_, _) => _input?.Focus();
+
+        // The window is undecorated and topmost with no close button. Dismiss it
+        // if it loses activation (user clicked another app) so it can't strand as
+        // an un-closeable topmost window, and handle Esc/Enter at the window level
+        // too so they work even when the TextBox doesn't have focus.
+        Deactivated += (_, _) =>
+        {
+            Result = null;
+            Close();
+        };
+        AddHandler(KeyDownEvent, OnKeyDown, Avalonia.Interactivity.RoutingStrategies.Tunnel);
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
