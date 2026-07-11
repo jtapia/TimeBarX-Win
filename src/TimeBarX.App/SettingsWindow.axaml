@@ -141,6 +141,11 @@
                            HorizontalAlignment="Center"
                            Foreground="#10B981"
                            IsVisible="False" />
+                <Button Name="UpdateDownloadButton"
+                        Content="Download update"
+                        HorizontalAlignment="Center"
+                        IsVisible="False"
+                        Click="OnDownloadUpdateClicked" />
             </StackPanel>
         </TabItem>
     </TabControl>

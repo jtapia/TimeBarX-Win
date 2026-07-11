@@ -18,6 +18,7 @@ public partial class SettingsWindow : Window
     private Slider? _opacitySlider;
     private TextBlock? _versionText;
     private TextBlock? _updateText;
+    private Button? _updateDownloadButton;
 
     // "Pro" chips on locked feature groups — visible only when !IsPro.
     private Control? _colorProChip;
@@ -43,6 +44,7 @@ public partial class SettingsWindow : Window
         _opacitySlider = this.FindControl<Slider>("OpacitySlider");
         _versionText = this.FindControl<TextBlock>("VersionText");
         _updateText = this.FindControl<TextBlock>("UpdateText");
+        _updateDownloadButton = this.FindControl<Button>("UpdateDownloadButton");
         _colorProChip = this.FindControl<Control>("ColorProChip");
         _alwaysAboveProChip = this.FindControl<Control>("AlwaysAboveProChip");
         _gradientProChip = this.FindControl<Control>("GradientProChip");
@@ -167,10 +169,35 @@ public partial class SettingsWindow : Window
         if (update is null)
         {
             _updateText.IsVisible = false;
+            if (_updateDownloadButton is not null) _updateDownloadButton.IsVisible = false;
             return;
         }
         _updateText.Text = $"Update available: {update.LatestVersion}";
         _updateText.IsVisible = true;
+        if (_updateDownloadButton is not null)
+            _updateDownloadButton.IsVisible = !string.IsNullOrWhiteSpace(update.DownloadUrl);
+    }
+
+    private void OnDownloadUpdateClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var url = _controller?.AvailableUpdate?.DownloadUrl;
+        if (string.IsNullOrWhiteSpace(url)) return;
+        // Only launch well-formed absolute http(s) URLs; never hand an arbitrary
+        // string to the shell.
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return;
+        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) return;
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = uri.AbsoluteUri,
+                UseShellExecute = true,
+            });
+        }
+        catch
+        {
+            // best-effort; nothing actionable if the shell can't open a browser.
+        }
     }
 
     private void SyncFromSettings()
