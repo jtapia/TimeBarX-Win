@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Pipes;
+using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -9,12 +10,18 @@ namespace TimeBarX.App;
 
 /// <summary>
 /// Named-pipe single-instance gate. The first launcher becomes the server and
-/// receives forwarded URIs from subsequent invocations. The pipe name is fixed
-/// per user so multiple users on one machine don't collide.
+/// receives forwarded URIs from subsequent invocations. The mutex and pipe name
+/// are scoped per user so that under fast user switching a second user's launch
+/// isn't refused by the first user's still-running instance.
 /// </summary>
 public sealed class SingleInstance : IDisposable
 {
-    private const string PipeName = "TimeBarX.Instance.v1";
+    // Per-user suffix so two logged-in users get independent instances. Using the
+    // Local\ namespace scopes the mutex to the session and the user identity keys
+    // the pipe; both fall back to a stable literal if the identity can't be read.
+    private static readonly string UserScope = ResolveUserScope();
+    private static readonly string PipeName = $"TimeBarX.Instance.v1.{UserScope}";
+    private static readonly string MutexName = $"Local\\TimeBarX.SingleInstance.v1.{UserScope}";
 
     private readonly Mutex _mutex;
     private readonly bool _isOwner;
@@ -27,7 +34,25 @@ public sealed class SingleInstance : IDisposable
 
     public SingleInstance()
     {
-        _mutex = new Mutex(initiallyOwned: true, name: "Global\\TimeBarX.SingleInstance.v1", out _isOwner);
+        _mutex = new Mutex(initiallyOwned: true, name: MutexName, out _isOwner);
+    }
+
+    private static string ResolveUserScope()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            try
+            {
+                using var identity = WindowsIdentity.GetCurrent();
+                if (identity.User is { } sid) return sid.Value;
+            }
+            catch
+            {
+                // Restricted token: fall back to the user name below.
+            }
+        }
+        var name = Environment.UserName;
+        return string.IsNullOrEmpty(name) ? "default" : name;
     }
 
     public void StartListener()
