@@ -115,7 +115,25 @@ public partial class OverlayWindow : Window
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return 0;
 
-        var tray = FindWindow("Shell_TrayWnd", null);
+        // The primary taskbar is Shell_TrayWnd; per-monitor taskbars (when "show
+        // taskbar on all displays" is on) are Shell_SecondaryTrayWnd. Check the
+        // primary first, then walk the secondaries so the bar sizes to whichever
+        // taskbar actually sits at the bottom of *this* screen.
+        var primary = FindWindow("Shell_TrayWnd", null);
+        var height = MeasureTaskbar(primary, screenBounds);
+        if (height > 0) return height;
+
+        var secondary = IntPtr.Zero;
+        while ((secondary = FindWindowEx(IntPtr.Zero, secondary, "Shell_SecondaryTrayWnd", null)) != IntPtr.Zero)
+        {
+            height = MeasureTaskbar(secondary, screenBounds);
+            if (height > 0) return height;
+        }
+        return 0;
+    }
+
+    private static int MeasureTaskbar(IntPtr tray, PixelRect screenBounds)
+    {
         if (tray == IntPtr.Zero) return 0;
         if (!NativeMethods.GetWindowRect(tray, out var r)) return 0;
 
@@ -312,4 +330,7 @@ public partial class OverlayWindow : Window
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern IntPtr FindWindow(string? lpClassName, string? lpWindowName);
+
+    [DllImport("user32.dll", EntryPoint = "FindWindowExW", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern IntPtr FindWindowEx(IntPtr hWndParent, IntPtr hWndChildAfter, string? lpszClass, string? lpszWindow);
 }
