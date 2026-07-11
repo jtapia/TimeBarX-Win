@@ -62,13 +62,18 @@ public sealed record UriCommand(
             var eq = pair.IndexOf('=');
             if (eq < 0)
             {
-                result[Uri.UnescapeDataString(pair)] = string.Empty;
+                result[Decode(pair)] = string.Empty;
                 continue;
             }
-            var k = Uri.UnescapeDataString(pair[..eq]);
-            var v = Uri.UnescapeDataString(pair[(eq + 1)..]);
+            var k = Decode(pair[..eq]);
+            var v = Decode(pair[(eq + 1)..]);
             result[k] = v;
         }
         return result;
     }
+
+    // Query components are form-encoded, so '+' means a space. Uri.UnescapeDataString
+    // leaves '+' literal, so translate it first (matching what browsers/tools emit).
+    private static string Decode(string component)
+        => Uri.UnescapeDataString(component.Replace('+', ' '));
 }
