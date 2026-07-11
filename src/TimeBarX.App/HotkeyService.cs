@@ -30,7 +30,15 @@ public sealed class HotkeyService : IDisposable
 
     public event Action? Pressed;
 
+    /// <summary>True once the message-only window exists (the thread is pumping).</summary>
     public bool IsActive => _hwnd != IntPtr.Zero;
+
+    /// <summary>
+    /// True only if RegisterHotKey actually succeeded. False when another app
+    /// already owns Ctrl+Shift+T globally, so callers can surface that instead
+    /// of the hotkey silently doing nothing.
+    /// </summary>
+    public bool IsRegistered { get; private set; }
 
     public void Start()
     {
@@ -45,6 +53,12 @@ public sealed class HotkeyService : IDisposable
 
     public void Dispose()
     {
+        // Wait for the message loop to finish creating the window before reading
+        // _hwnd: on a loaded machine Start()'s bounded wait can return before the
+        // thread sets _hwnd, and without this the WM_CLOSE below would be skipped,
+        // stranding the thread in GetMessage forever with the hotkey registered.
+        _ready?.Wait(TimeSpan.FromSeconds(2));
+
         if (_hwnd != IntPtr.Zero)
         {
             PostMessage(_hwnd, WM_CLOSE, IntPtr.Zero, IntPtr.Zero);
@@ -81,7 +95,7 @@ public sealed class HotkeyService : IDisposable
             return;
         }
 
-        RegisterHotKey(_hwnd, HotkeyId, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, VK_T);
+        IsRegistered = RegisterHotKey(_hwnd, HotkeyId, MOD_CONTROL | MOD_SHIFT | MOD_NOREPEAT, VK_T);
         _ready?.Set();
 
         while (GetMessage(out var msg, IntPtr.Zero, 0, 0) > 0)
