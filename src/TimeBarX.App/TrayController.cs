@@ -120,6 +120,15 @@ public sealed class TrayController : INotifyPropertyChanged
     public string StatusLabel { get; private set; } = "No timer running";
     public double Progress => _engine.Progress;
     public bool IsBarVisible => _engine.State is TimerState.Running or TimerState.Paused or TimerState.Completed;
+
+    /// <summary>
+    /// Whether the bar is actively counting (Running or Paused). Distinct from
+    /// <see cref="IsBarVisible"/>, which stays true through Completed so the
+    /// overlay can play its fade-out. The overlay policy gates its polling on
+    /// this so it stops after completion instead of running the foreground/
+    /// Z-order checks forever for an invisible, faded-out bar.
+    /// </summary>
+    public bool IsBarActive => _engine.State is TimerState.Running or TimerState.Paused;
     public bool CanStart => _engine.State is TimerState.Idle or TimerState.Completed;
     public bool CanPause => _engine.State == TimerState.Running;
     public bool CanResume => _engine.State == TimerState.Paused;
@@ -315,6 +324,7 @@ public sealed class TrayController : INotifyPropertyChanged
         if (stateChanged)
         {
             Raise(nameof(IsBarVisible));
+            Raise(nameof(IsBarActive));
             Raise(nameof(CanStart));
             Raise(nameof(CanPause));
             Raise(nameof(CanResume));

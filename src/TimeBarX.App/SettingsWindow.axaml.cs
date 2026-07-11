@@ -112,6 +112,22 @@ public partial class SettingsWindow : Window
         SyncUpdate();
     }
 
+    protected override void OnClosed(EventArgs e)
+    {
+        // The controller and entitlements outlive this window, so unhook on close;
+        // otherwise every opened-then-closed Settings window stays rooted and keeps
+        // running SyncFromSettings/SyncProChips on each settings or entitlement change.
+        if (_controller is not null)
+        {
+            _controller.SettingsChanged -= SyncFromSettings;
+            _controller.PropertyChanged -= OnControllerPropertyChanged;
+            _controller.Entitlements.Changed -= SyncProChips;
+            _controller = null;
+        }
+        DataContextChanged -= OnDataContextChanged;
+        base.OnClosed(e);
+    }
+
     private void SyncProChips()
     {
         var isPro = _controller?.Entitlements.IsPro ?? false;

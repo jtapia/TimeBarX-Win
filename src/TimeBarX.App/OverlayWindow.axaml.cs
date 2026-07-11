@@ -154,6 +154,23 @@ public partial class OverlayWindow : Window
     {
         _policy?.Dispose();
         _policy = null;
+
+        // Stop any in-flight completion animation so its DispatcherTimer doesn't
+        // keep ticking on a closed window.
+        _animator?.Cancel();
+        _animator = null;
+
+        // The controller lives for the whole app; unhook so a closed overlay
+        // (e.g. after a monitor disconnect) isn't kept alive processing progress
+        // updates and re-laying-out on every settings change.
+        if (_boundController is not null)
+        {
+            _boundController.PropertyChanged -= OnControllerPropertyChanged;
+            _boundController.Completed -= OnTimerCompleted;
+            _boundController.SettingsChanged -= ApplySettings;
+            _boundController = null;
+        }
+
         base.OnClosed(e);
     }
 
