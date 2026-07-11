@@ -181,26 +181,15 @@ public partial class OverlayWindow : Window
         // The controller lives for the whole app; unhook so a closed overlay
         // (e.g. after a monitor disconnect) isn't kept alive processing progress
         // updates and re-laying-out on every settings change.
-        if (_boundController is not null)
-        {
-            _boundController.PropertyChanged -= OnControllerPropertyChanged;
-            _boundController.Completed -= OnTimerCompleted;
-            _boundController.SettingsChanged -= ApplySettings;
-            _boundController = null;
-        }
+        UnsubscribeController();
+        _boundController = null;
 
         base.OnClosed(e);
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        if (_boundController is not null)
-        {
-            _boundController.PropertyChanged -= OnControllerPropertyChanged;
-            _boundController.Completed -= OnTimerCompleted;
-            _boundController.SettingsChanged -= ApplySettings;
-        }
-
+        UnsubscribeController();
         _boundController = DataContext as TrayController;
 
         if (_boundController is not null)
@@ -213,6 +202,17 @@ public partial class OverlayWindow : Window
         ApplySettings();
         UpdateProgressBarWidth();
         StartPolicyIfReady();
+    }
+
+    // Single source of truth for detaching from the controller — used both when
+    // the DataContext swaps and on close, so adding a new subscription only has
+    // to be mirrored in one place.
+    private void UnsubscribeController()
+    {
+        if (_boundController is null) return;
+        _boundController.PropertyChanged -= OnControllerPropertyChanged;
+        _boundController.Completed -= OnTimerCompleted;
+        _boundController.SettingsChanged -= ApplySettings;
     }
 
     private void ApplySettings()

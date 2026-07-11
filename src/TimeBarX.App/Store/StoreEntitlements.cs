@@ -220,9 +220,19 @@ public sealed class StoreEntitlements : IEntitlements
     {
         try
         {
-            var dir = Path.GetDirectoryName(_cachePath);
-            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-            File.WriteAllText(_cachePath, owned ? CacheOwnedMarker : string.Empty);
+            if (owned)
+            {
+                var dir = Path.GetDirectoryName(_cachePath);
+                if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                File.WriteAllText(_cachePath, CacheOwnedMarker);
+            }
+            else if (File.Exists(_cachePath))
+            {
+                // ReadCachedPro treats absence and empty identically, so on a
+                // transition to not-owned (refund/downgrade) the file is dropped
+                // rather than left as a zero-byte marker.
+                File.Delete(_cachePath);
+            }
         }
         catch
         {

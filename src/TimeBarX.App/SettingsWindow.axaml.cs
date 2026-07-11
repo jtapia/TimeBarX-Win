@@ -90,12 +90,7 @@ public partial class SettingsWindow : Window
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        if (_controller is not null)
-        {
-            _controller.SettingsChanged -= SyncFromSettings;
-            _controller.PropertyChanged -= OnControllerPropertyChanged;
-            _controller.Entitlements.Changed -= SyncProChips;
-        }
+        UnsubscribeController();
         _controller = DataContext as TrayController;
         if (_controller is not null)
         {
@@ -117,15 +112,20 @@ public partial class SettingsWindow : Window
         // The controller and entitlements outlive this window, so unhook on close;
         // otherwise every opened-then-closed Settings window stays rooted and keeps
         // running SyncFromSettings/SyncProChips on each settings or entitlement change.
-        if (_controller is not null)
-        {
-            _controller.SettingsChanged -= SyncFromSettings;
-            _controller.PropertyChanged -= OnControllerPropertyChanged;
-            _controller.Entitlements.Changed -= SyncProChips;
-            _controller = null;
-        }
-        DataContextChanged -= OnDataContextChanged;
+        UnsubscribeController();
+        _controller = null;
         base.OnClosed(e);
+    }
+
+    // Single source of truth for detaching from the controller — used both when
+    // the DataContext swaps and on close, so adding a new subscription only has
+    // to be mirrored in one place.
+    private void UnsubscribeController()
+    {
+        if (_controller is null) return;
+        _controller.SettingsChanged -= SyncFromSettings;
+        _controller.PropertyChanged -= OnControllerPropertyChanged;
+        _controller.Entitlements.Changed -= SyncProChips;
     }
 
     private void SyncProChips()
