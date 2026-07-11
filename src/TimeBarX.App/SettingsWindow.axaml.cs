@@ -17,6 +17,12 @@ public partial class SettingsWindow : Window
     private CheckBox? _autoPauseCheck;
     private NumericUpDown? _autoPauseMinutes;
     private CheckBox? _recordHistoryCheck;
+    private CheckBox? _pomodoroEnabledCheck;
+    private CheckBox? _pomodoroAutoAdvanceCheck;
+    private NumericUpDown? _pomodoroWork;
+    private NumericUpDown? _pomodoroShort;
+    private NumericUpDown? _pomodoroLong;
+    private NumericUpDown? _pomodoroLongEvery;
     private Control? _alwaysAboveWarning;
     private Slider? _opacitySlider;
     private TextBlock? _versionText;
@@ -46,6 +52,12 @@ public partial class SettingsWindow : Window
         _autoPauseCheck = this.FindControl<CheckBox>("AutoPauseCheck");
         _autoPauseMinutes = this.FindControl<NumericUpDown>("AutoPauseMinutes");
         _recordHistoryCheck = this.FindControl<CheckBox>("RecordHistoryCheck");
+        _pomodoroEnabledCheck = this.FindControl<CheckBox>("PomodoroEnabledCheck");
+        _pomodoroAutoAdvanceCheck = this.FindControl<CheckBox>("PomodoroAutoAdvanceCheck");
+        _pomodoroWork = this.FindControl<NumericUpDown>("PomodoroWork");
+        _pomodoroShort = this.FindControl<NumericUpDown>("PomodoroShort");
+        _pomodoroLong = this.FindControl<NumericUpDown>("PomodoroLong");
+        _pomodoroLongEvery = this.FindControl<NumericUpDown>("PomodoroLongEvery");
         _alwaysAboveWarning = this.FindControl<Control>("AlwaysAboveWarning");
         _opacitySlider = this.FindControl<Slider>("OpacitySlider");
         _versionText = this.FindControl<TextBlock>("VersionText");
@@ -243,6 +255,14 @@ public partial class SettingsWindow : Window
             if (_recordHistoryCheck is not null)
                 _recordHistoryCheck.IsChecked = s.RecordSessionHistory;
 
+            var pomo = s.Pomodoro ?? PomodoroSettings.Default;
+            if (_pomodoroEnabledCheck is not null) _pomodoroEnabledCheck.IsChecked = pomo.Enabled;
+            if (_pomodoroAutoAdvanceCheck is not null) _pomodoroAutoAdvanceCheck.IsChecked = pomo.AutoAdvance;
+            if (_pomodoroWork is not null) _pomodoroWork.Value = pomo.WorkMinutes;
+            if (_pomodoroShort is not null) _pomodoroShort.Value = pomo.ShortBreakMinutes;
+            if (_pomodoroLong is not null) _pomodoroLong.Value = pomo.LongBreakMinutes;
+            if (_pomodoroLongEvery is not null) _pomodoroLongEvery.Value = pomo.LongBreakEvery;
+
             SyncRadioGroup(_defaultDurationRadios, s.DefaultDuration);
             SyncRadioGroup(_colorRadios, s.Color);
             SyncRadioGroup(_heightRadios, s.Height);
@@ -350,6 +370,43 @@ public partial class SettingsWindow : Window
 
     private void OnRecordHistoryClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
         => Update(x => x with { RecordSessionHistory = _recordHistoryCheck?.IsChecked == true });
+
+    private PomodoroSettings CurrentPomodoro()
+        => _controller?.Settings.Pomodoro ?? PomodoroSettings.Default;
+
+    private void OnPomodoroEnabledClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+        => Update(x => x with { Pomodoro = CurrentPomodoro() with { Enabled = _pomodoroEnabledCheck?.IsChecked == true } });
+
+    private void OnPomodoroAutoAdvanceClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+        => Update(x => x with { Pomodoro = CurrentPomodoro() with { AutoAdvance = _pomodoroAutoAdvanceCheck?.IsChecked == true } });
+
+    private void OnPomodoroWorkChanged(object? s, Avalonia.Controls.NumericUpDownValueChangedEventArgs e)
+    {
+        if (_syncing) return;
+        var v = (int)(e.NewValue ?? 25);
+        Update(x => x with { Pomodoro = CurrentPomodoro() with { WorkMinutes = v } });
+    }
+
+    private void OnPomodoroShortChanged(object? s, Avalonia.Controls.NumericUpDownValueChangedEventArgs e)
+    {
+        if (_syncing) return;
+        var v = (int)(e.NewValue ?? 5);
+        Update(x => x with { Pomodoro = CurrentPomodoro() with { ShortBreakMinutes = v } });
+    }
+
+    private void OnPomodoroLongChanged(object? s, Avalonia.Controls.NumericUpDownValueChangedEventArgs e)
+    {
+        if (_syncing) return;
+        var v = (int)(e.NewValue ?? 15);
+        Update(x => x with { Pomodoro = CurrentPomodoro() with { LongBreakMinutes = v } });
+    }
+
+    private void OnPomodoroLongEveryChanged(object? s, Avalonia.Controls.NumericUpDownValueChangedEventArgs e)
+    {
+        if (_syncing) return;
+        var v = (int)(e.NewValue ?? 4);
+        Update(x => x with { Pomodoro = CurrentPomodoro() with { LongBreakEvery = v } });
+    }
 
     private void OnShowHistoryFileClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
     {

@@ -30,6 +30,13 @@ public sealed class TrayController : INotifyPropertyChanged
     // record when the timer completes. Null when there's no active timer.
     private DateTimeOffset? _startedAtUtc;
 
+    // Pomodoro cycle state. When _pomodoroPhase is non-null, the currently
+    // running (or last-completed) timer is one Pomodoro phase; on completion
+    // with AutoAdvance the next phase kicks off automatically. Reset by Stop
+    // or by starting a non-Pomodoro timer.
+    private PomodoroPhase? _pomodoroPhase;
+    private int _pomodoroWorkCount;
+
     // Last values pushed to the UI, so the 30 FPS refresh only raises
     // PropertyChanged when something actually changed (see RefreshFromEngine).
     private string? _lastTooltip;
@@ -221,6 +228,8 @@ public sealed class TrayController : INotifyPropertyChanged
         _currentPreset = FormatPreset(duration);
         _currentLabel = null;
         _startedAtUtc = DateTimeOffset.UtcNow;
+        _pomodoroPhase = null;
+        _pomodoroWorkCount = 0;
         _engine.Start(duration);
         _ticker.Start();
         Persist();
@@ -245,11 +254,51 @@ public sealed class TrayController : INotifyPropertyChanged
         _currentPreset = string.IsNullOrEmpty(preset) ? DefaultPreset : preset;
         _currentLabel = string.IsNullOrWhiteSpace(label) ? null : label.Trim();
         _startedAtUtc = DateTimeOffset.UtcNow;
+        // Any manually-started custom timer breaks the Pomodoro cycle: the user
+        // is intentionally running something else, so the auto-advance chain
+        // shouldn't come back to bite them later.
+        _pomodoroPhase = null;
+        _pomodoroWorkCount = 0;
         _engine.Start(duration);
         _ticker.Start();
         Persist();
         RefreshFromEngine();
     }
+
+    /// <summary>
+    /// Starts (or restarts) the Pomodoro cycle: the current phase is set to
+    /// Work and a timer of the configured Work length kicks off. On completion,
+    /// with AutoAdvance enabled, subsequent phases follow automatically.
+    /// </summary>
+    public void StartPomodoro()
+    {
+        var pomo = _settings.Pomodoro ?? PomodoroSettings.Default;
+        _engine.Stop();
+        _pomodoroWorkCount = 0;
+        StartPomodoroPhase(pomo, PomodoroPhase.Work);
+    }
+
+    private void StartPomodoroPhase(PomodoroSettings pomo, PomodoroPhase phase)
+    {
+        _pomodoroPhase = phase;
+        var duration = pomo.DurationFor(phase);
+        _currentPreset = FormatPreset(duration);
+        _currentLabel = phase switch
+        {
+            PomodoroPhase.Work => $"Pomodoro · Work",
+            PomodoroPhase.ShortBreak => $"Pomodoro · Break",
+            PomodoroPhase.LongBreak => $"Pomodoro · Long break",
+            _ => "Pomodoro",
+        };
+        _startedAtUtc = DateTimeOffset.UtcNow;
+        _engine.Start(duration);
+        _ticker.Start();
+        Persist();
+        RefreshFromEngine();
+    }
+
+    /// <summary>Current Pomodoro phase, or null when no cycle is active.</summary>
+    public PomodoroPhase? CurrentPomodoroPhase => _pomodoroPhase;
 
     public void Pause()
     {
@@ -275,6 +324,8 @@ public sealed class TrayController : INotifyPropertyChanged
         _store.Clear();
         _currentLabel = null;
         _startedAtUtc = null;
+        _pomodoroPhase = null;
+        _pomodoroWorkCount = 0;
         RefreshFromEngine();
     }
 
@@ -370,8 +421,38 @@ public sealed class TrayController : INotifyPropertyChanged
         if (justCompleted)
         {
             RecordCompletion();
+            var advanced = TryAdvancePomodoro();
             Completed?.Invoke();
+            // If the cycle auto-advanced into the next phase, the completion
+            // sound/animation still fires for the phase that just ended.
+            _ = advanced;
         }
+    }
+
+    /// <summary>
+    /// If a Pomodoro cycle is active and AutoAdvance is on, transition to the
+    /// next phase and kick off a new timer. Returns true when an advance
+    /// happened, so the caller can suppress overlay effects that shouldn't
+    /// run twice (currently none — the completion event still fires once for
+    /// the phase that ended).
+    /// </summary>
+    private bool TryAdvancePomodoro()
+    {
+        if (_pomodoroPhase is not { } phase) return false;
+        var pomo = _settings.Pomodoro ?? PomodoroSettings.Default;
+        if (!pomo.Enabled || !pomo.AutoAdvance) return false;
+
+        if (phase == PomodoroPhase.Work) _pomodoroWorkCount++;
+        var next = pomo.NextPhase(phase, _pomodoroWorkCount);
+        // Schedule the transition onto the dispatcher so the engine's Completed
+        // → Idle bookkeeping this frame settles before we Start again.
+        Dispatcher.UIThread.Post(() =>
+        {
+            // A Stop or manual Start between now and dispatch cancels the advance.
+            if (_pomodoroPhase != phase) return;
+            StartPomodoroPhase(pomo, next);
+        });
+        return true;
     }
 
     private void RecordCompletion()

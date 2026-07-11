@@ -267,6 +267,21 @@ public partial class App : Application
     private void OnStart60Clicked(object? sender, System.EventArgs e) => StartPreset(60);
     private void OnStart90Clicked(object? sender, System.EventArgs e) => StartPreset(90);
     private void OnStartCustomClicked(object? sender, System.EventArgs e) => ShowQuickInput();
+
+    private void OnStartPomodoroClicked(object? sender, System.EventArgs e)
+    {
+        // Pomodoro requires the settings block to be present and enabled; if
+        // the user hasn't enabled it, kicking off with defaults would surprise
+        // them — instead open the Settings window so they can configure it.
+        var pomo = Controller.Settings.Pomodoro;
+        if (pomo is null || !pomo.Enabled)
+        {
+            OpenSettings();
+            return;
+        }
+        Controller.StartPomodoro();
+    }
+
     private void OnPauseClicked(object? sender, System.EventArgs e) => Controller.Pause();
     private void OnResumeClicked(object? sender, System.EventArgs e) => Controller.Resume();
     private void OnStopClicked(object? sender, System.EventArgs e) => Controller.Stop();
