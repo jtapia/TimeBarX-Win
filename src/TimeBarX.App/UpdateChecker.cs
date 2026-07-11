@@ -14,6 +14,14 @@ namespace TimeBarX.App;
 /// </summary>
 public sealed class UpdateChecker
 {
+    // versions.json is authored by hand/CI and may use camelCase; bind
+    // case-insensitively so a "latestVersion" key doesn't silently bind to null
+    // and disable update detection forever.
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
+
     private readonly Uri _endpoint;
     private readonly HttpClient _http;
 
@@ -30,8 +38,8 @@ public sealed class UpdateChecker
             using var response = await _http.GetAsync(_endpoint, ct).ConfigureAwait(false);
             response.EnsureSuccessStatusCode();
             await using var stream = await response.Content.ReadAsStreamAsync(ct).ConfigureAwait(false);
-            var info = await JsonSerializer.DeserializeAsync<UpdateInfo>(stream, cancellationToken: ct).ConfigureAwait(false);
-            if (info is null) return null;
+            var info = await JsonSerializer.DeserializeAsync<UpdateInfo>(stream, JsonOptions, ct).ConfigureAwait(false);
+            if (info is null || string.IsNullOrWhiteSpace(info.LatestVersion)) return null;
             return UpdateInfo.IsNewer(info.LatestVersion, currentVersion) ? info : null;
         }
         catch
