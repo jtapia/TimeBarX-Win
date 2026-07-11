@@ -92,7 +92,9 @@ public partial class App : Application
             _ = CheckForUpdatesAsync();
 
             // URI from this process's own startup args.
-            var startupUri = desktop.Args?.FirstOrDefault(a => a.StartsWith("timebarx://", StringComparison.OrdinalIgnoreCase));
+            // Accept both host-form (timebarx://…) and path-form (timebarx:/…);
+            // UriCommand normalizes both, this just has to pick up either arg.
+            var startupUri = desktop.Args?.FirstOrDefault(a => a.StartsWith("timebarx:", StringComparison.OrdinalIgnoreCase));
             if (startupUri is not null) HandleUri(startupUri);
         }
 
@@ -153,7 +155,7 @@ public partial class App : Application
 
     private void OnTimerCompleted()
     {
-        if (Controller.PlayCompletionSound) CompletionSound.Play();
+        CompletionSound.Play(Controller.Settings.EffectiveCompletionSound);
     }
 
     private void OnHotkeyPressed()

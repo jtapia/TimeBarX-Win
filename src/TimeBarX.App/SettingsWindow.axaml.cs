@@ -222,7 +222,7 @@ public partial class SettingsWindow : Window
         try
         {
             var s = _controller.Settings;
-            if (_soundCheck is not null) _soundCheck.IsChecked = s.PlayCompletionSound;
+            if (_soundCheck is not null) _soundCheck.IsChecked = s.EffectiveCompletionSound != CompletionSoundChoice.Off;
             if (_gradientCheck is not null) _gradientCheck.IsChecked = s.GradientMode;
             if (_alwaysAboveCheck is not null) _alwaysAboveCheck.IsChecked = s.AlwaysAboveEverything;
             if (_alwaysAboveWarning is not null) _alwaysAboveWarning.IsVisible = s.AlwaysAboveEverything;
@@ -261,7 +261,17 @@ public partial class SettingsWindow : Window
     private void OnDefault50Clicked(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { DefaultDuration = TimeSpan.FromMinutes(50) });
     private void OnDefault90Clicked(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { DefaultDuration = TimeSpan.FromMinutes(90) });
     private void OnSoundCheckClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
-        => Update(x => x with { PlayCompletionSound = _soundCheck?.IsChecked == true });
+    {
+        var on = _soundCheck?.IsChecked == true;
+        // Keep the legacy bool and the new enum in sync so both surfaces —
+        // upgrading users reading only PlayCompletionSound and new callers
+        // using EffectiveCompletionSound — see the same choice.
+        Update(x => x with
+        {
+            PlayCompletionSound = on,
+            CompletionSound = on ? CompletionSoundChoice.Asterisk : CompletionSoundChoice.Off,
+        });
+    }
 
     private void OnAlwaysAboveClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
     {

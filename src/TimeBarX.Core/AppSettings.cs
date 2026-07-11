@@ -32,7 +32,11 @@ public sealed record AppSettings(
     bool AlwaysAboveEverything = false,
     IReadOnlyList<string>? HideForProcesses = null,
     BarPosition Position = BarPosition.Top,
-    IReadOnlyList<CustomPreset>? CustomPresets = null)
+    IReadOnlyList<CustomPreset>? CustomPresets = null,
+    CompletionSoundChoice? CompletionSound = null,
+    int? AutoPauseOnIdleMinutes = null,
+    PomodoroSettings? Pomodoro = null,
+    bool RecordSessionHistory = true)
 {
     public static IReadOnlyList<string> DefaultHideList { get; } = new[]
     {
@@ -50,7 +54,20 @@ public sealed record AppSettings(
         AlwaysAboveEverything: false,
         HideForProcesses: DefaultHideList,
         Position: BarPosition.Top,
-        CustomPresets: Array.Empty<CustomPreset>());
+        CustomPresets: Array.Empty<CustomPreset>(),
+        CompletionSound: null,
+        AutoPauseOnIdleMinutes: null,
+        Pomodoro: null,
+        RecordSessionHistory: true);
+
+    /// <summary>
+    /// The completion sound to actually play, folding legacy settings files
+    /// into the new enum: when <see cref="CompletionSound"/> is unset (older
+    /// settings.json), we honor the boolean <see cref="PlayCompletionSound"/>
+    /// so upgrading users don't silently lose their sound.
+    /// </summary>
+    public CompletionSoundChoice EffectiveCompletionSound => CompletionSound
+        ?? (PlayCompletionSound ? CompletionSoundChoice.Asterisk : CompletionSoundChoice.Off);
 
     public AppSettings WithOpacity(double opacity)
     {
@@ -74,6 +91,10 @@ public sealed record AppSettings(
         var position = Enum.IsDefined(Position) ? Position : Default.Position;
         var duration = DefaultDuration > TimeSpan.Zero ? DefaultDuration : Default.DefaultDuration;
 
+        var sound = CompletionSound is { } cs && Enum.IsDefined(cs) ? cs : (CompletionSoundChoice?)null;
+        var idle = AutoPauseOnIdleMinutes is > 0 and <= 240 ? AutoPauseOnIdleMinutes : null;
+        var pomodoro = Pomodoro?.Sanitize();
+
         return this with
         {
             Opacity = opacity,
@@ -83,6 +104,9 @@ public sealed record AppSettings(
             DefaultDuration = duration,
             HideForProcesses = HideForProcesses ?? DefaultHideList,
             CustomPresets = CustomPresets ?? Array.Empty<CustomPreset>(),
+            CompletionSound = sound,
+            AutoPauseOnIdleMinutes = idle,
+            Pomodoro = pomodoro,
         };
     }
 

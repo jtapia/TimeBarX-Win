@@ -24,7 +24,14 @@ public sealed record UriCommand(
         if (!Uri.TryCreate(input, UriKind.Absolute, out var uri)) return false;
         if (!string.Equals(uri.Scheme, Scheme, StringComparison.OrdinalIgnoreCase)) return false;
 
-        var action = uri.Host.ToLowerInvariant();
+        // Accept both host-form (timebarx://start) and path-form
+        // (timebarx:/start). External launchers (Flow Launcher, PowerToys Run)
+        // sometimes drop the double slash; fall back to the first path segment
+        // when the host is empty rather than rejecting.
+        var action = (uri.Host.Length > 0
+            ? uri.Host
+            : uri.AbsolutePath.Trim('/').Split('/', 2)[0]
+        ).ToLowerInvariant();
         var query = ParseQuery(uri.Query);
 
         switch (action)

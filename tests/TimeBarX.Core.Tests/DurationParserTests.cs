@@ -122,4 +122,34 @@ public class DurationParserTests
         Assert.True(DurationParser.TryParse(parsed.Preset, out var round));
         Assert.Equal(parsed.Duration, round.Duration);
     }
+
+    [Theory]
+    [InlineData("an hour and 15", 75)]
+    [InlineData("an hour and a half", 90)]
+    [InlineData("an hour and a quarter", 75)]
+    [InlineData("2 hours and 30 minutes", 150)]
+    [InlineData("2 hours and half", 150)]
+    [InlineData("a hour and 20", 80)]
+    public void Parses_compound_phrase(string input, int totalMinutes)
+    {
+        Assert.True(DurationParser.TryParse(input, out var parsed));
+        Assert.Equal(TimeSpan.FromMinutes(totalMinutes), parsed.Duration);
+    }
+
+    [Fact]
+    public void Compound_phrase_captures_trailing_label()
+    {
+        Assert.True(DurationParser.TryParse("an hour and 15 deep work", out var parsed));
+        Assert.Equal(TimeSpan.FromMinutes(75), parsed.Duration);
+        Assert.Equal("deep work", parsed.Label);
+    }
+
+    [Fact]
+    public void Compound_phrase_preset_round_trips()
+    {
+        Assert.True(DurationParser.TryParse("an hour and a half", out var parsed));
+        Assert.Equal("1h 30m", parsed.Preset);
+        Assert.True(DurationParser.TryParse(parsed.Preset, out var round));
+        Assert.Equal(parsed.Duration, round.Duration);
+    }
 }

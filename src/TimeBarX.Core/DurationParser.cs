@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Linq;
 using System.Text.RegularExpressions;
 
 namespace TimeBarX.Core;
@@ -30,10 +31,56 @@ public static class DurationParser
         var trimmed = input.Trim();
 
         if (TryParseColon(trimmed, out result)) return true;
+        // Compound phrase must run before the unit form: "2 hours and 30 minutes"
+        // would otherwise be consumed as "2 hours" alone with " and 30 minutes"
+        // captured as a label.
+        if (TryParseCompoundPhrase(trimmed, out result)) return true;
         if (TryParseUnits(trimmed, out result)) return true;
         if (TryParsePhrase(trimmed, out result)) return true;
 
         return false;
+    }
+
+    // Compound phrases: "N hour(s) and M min(utes)", "an hour and 15",
+    // "an hour and a half", "2 hours and a quarter". Each side may be a
+    // number-with-unit, a bare number (interpreted in the smaller sibling
+    // unit), or a fractional word ("half"/"quarter") of the larger unit.
+    // Whichever side gives us a positive TimeSpan wins.
+    private static readonly Regex CompoundPhraseForm = new(
+        @"^(?<h>\d+|an?)\s+(?<hu>hours?|hrs?)\s+and\s+(?<tail>a\s+half|a\s+quarter|half|quarter|\d+\s*(?:minutes?|mins?|m)?)\b",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    private static bool TryParseCompoundPhrase(string input, out ParsedDuration result)
+    {
+        result = default!;
+        var m = CompoundPhraseForm.Match(input);
+        if (!m.Success) return false;
+
+        var head = m.Groups["h"].Value.ToLowerInvariant();
+        int hours;
+        if (head is "a" or "an") hours = 1;
+        else if (!TryParseComponent(head, MaxHours, out hours) || hours <= 0) return false;
+
+        var tail = m.Groups["tail"].Value.ToLowerInvariant().Trim();
+        TimeSpan extra;
+        if (tail is "half" or "a half") extra = TimeSpan.FromMinutes(30);
+        else if (tail is "quarter" or "a quarter") extra = TimeSpan.FromMinutes(15);
+        else
+        {
+            // "15" or "15 minutes" — bare digits default to minutes.
+            var digits = new string(tail.TakeWhile(char.IsDigit).ToArray());
+            if (!TryParseComponent(digits, MaxHours * 60, out var minutes) || minutes <= 0) return false;
+            if (minutes >= 60) return false; // "an hour and 90" is nonsense; use "2:30" instead
+            extra = TimeSpan.FromMinutes(minutes);
+        }
+
+        var duration = TimeSpan.FromHours(hours) + extra;
+        if (duration <= TimeSpan.Zero || duration > TimeSpan.FromHours(MaxHours)) return false;
+
+        var preset = PresetFor(duration);
+        var label = ExtractTrailingLabel(input, m.Length);
+        result = new ParsedDuration(duration, label, preset);
+        return true;
     }
 
     // Phrase forms: "half hour" / "quarter hour" / "an hour" / "a minute" — with optional trailing label.
@@ -154,7 +201,12 @@ public static class DurationParser
     // Sub-minute durations must use seconds so we never emit a dead "0m".
     private static string PresetFor(TimeSpan duration)
     {
-        if (duration.TotalHours >= 1) return $"{(int)duration.TotalHours}h";
+        if (duration.TotalHours >= 1)
+        {
+            var hours = (int)duration.TotalHours;
+            var mins = duration.Minutes;
+            return mins == 0 ? $"{hours}h" : $"{hours}h {mins}m";
+        }
         if (duration.TotalMinutes >= 1) return $"{(int)duration.TotalMinutes}m";
         return $"{(int)duration.TotalSeconds}s";
     }

@@ -65,4 +65,23 @@ public class UriCommandTests
     {
         Assert.False(UriCommand.TryParse(input, out _));
     }
+
+    [Theory]
+    [InlineData("timebarx:/start?duration=25m")]
+    [InlineData("timebarx:/pause")]
+    [InlineData("timebarx:/resume")]
+    [InlineData("timebarx:/stop")]
+    public void Accepts_path_form(string input)
+    {
+        Assert.True(UriCommand.TryParse(input, out _));
+    }
+
+    [Fact]
+    public void Path_form_start_carries_duration_and_label()
+    {
+        Assert.True(UriCommand.TryParse("timebarx:/start?duration=25m&label=review", out var cmd));
+        Assert.Equal(UriCommandKind.Start, cmd.Kind);
+        Assert.Equal(TimeSpan.FromMinutes(25), cmd.Duration);
+        Assert.Equal("review", cmd.Label);
+    }
 }
