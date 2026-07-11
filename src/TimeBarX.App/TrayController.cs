@@ -37,6 +37,12 @@ public sealed class TrayController : INotifyPropertyChanged
     private PomodoroPhase? _pomodoroPhase;
     private int _pomodoroWorkCount;
 
+    // If the current timer was started from a CustomPreset with per-preset
+    // overrides, that preset is kept here so completion effects (sound,
+    // alert message) can consult it. Cleared by Start / StartCustom without
+    // a preset / Stop / Pomodoro transitions.
+    private CustomPreset? _activePreset;
+
     // Last values pushed to the UI, so the 30 FPS refresh only raises
     // PropertyChanged when something actually changed (see RefreshFromEngine).
     private string? _lastTooltip;
@@ -228,6 +234,7 @@ public sealed class TrayController : INotifyPropertyChanged
         _currentPreset = FormatPreset(duration);
         _currentLabel = null;
         _startedAtUtc = DateTimeOffset.UtcNow;
+        _activePreset = null;
         _pomodoroPhase = null;
         _pomodoroWorkCount = 0;
         _engine.Start(duration);
@@ -254,6 +261,7 @@ public sealed class TrayController : INotifyPropertyChanged
         _currentPreset = string.IsNullOrEmpty(preset) ? DefaultPreset : preset;
         _currentLabel = string.IsNullOrWhiteSpace(label) ? null : label.Trim();
         _startedAtUtc = DateTimeOffset.UtcNow;
+        _activePreset = null;
         // Any manually-started custom timer breaks the Pomodoro cycle: the user
         // is intentionally running something else, so the auto-advance chain
         // shouldn't come back to bite them later.
@@ -264,6 +272,24 @@ public sealed class TrayController : INotifyPropertyChanged
         Persist();
         RefreshFromEngine();
     }
+
+    /// <summary>
+    /// Start a timer from a user-defined <see cref="CustomPreset"/>, honoring
+    /// any per-preset overrides (label, completion sound, alert message).
+    /// </summary>
+    public void StartFromPreset(CustomPreset preset)
+    {
+        if (!preset.IsValid) return;
+        StartCustom(preset.Duration, FormatPreset(preset.Duration), preset.Label);
+        _activePreset = preset;
+    }
+
+    /// <summary>Completion sound for the currently-active timer, honoring per-preset overrides.</summary>
+    public CompletionSoundChoice EffectiveCompletionSoundForCurrent()
+        => _activePreset?.CompletionSound ?? _settings.EffectiveCompletionSound;
+
+    /// <summary>Alert message for the currently-active preset, if any.</summary>
+    public string? ActiveAlertMessage => _activePreset?.AlertMessage;
 
     /// <summary>
     /// Starts (or restarts) the Pomodoro cycle: the current phase is set to
@@ -324,6 +350,7 @@ public sealed class TrayController : INotifyPropertyChanged
         _store.Clear();
         _currentLabel = null;
         _startedAtUtc = null;
+        _activePreset = null;
         _pomodoroPhase = null;
         _pomodoroWorkCount = 0;
         RefreshFromEngine();

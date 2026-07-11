@@ -156,7 +156,7 @@ public partial class App : Application
 
     private void OnTimerCompleted()
     {
-        CompletionSound.Play(Controller.Settings.EffectiveCompletionSound);
+        CompletionSound.Play(Controller.EffectiveCompletionSoundForCurrent());
     }
 
     private void OnHotkeyPressed()
@@ -213,7 +213,7 @@ public partial class App : Application
             {
                 var item = new NativeMenuItem(p.Name);
                 var captured = p; // capture local to avoid closure-over-loop-variable
-                item.Click += (_, _) => Controller.StartCustom(captured.Duration, FormatPresetTag(captured.Duration), captured.Label);
+                item.Click += (_, _) => Controller.StartFromPreset(captured);
                 startMenu.Items.Add(item);
             }
             startMenu.Items.Add(new NativeMenuItemSeparator());

@@ -59,4 +59,31 @@ public class CustomPresetTests
         Assert.NotNull(AppSettings.Default.CustomPresets);
         Assert.Empty(AppSettings.Default.CustomPresets!);
     }
+
+    [Fact]
+    public void Overrides_round_trip_through_json()
+    {
+        var preset = new CustomPreset(
+            "Deep work",
+            TimeSpan.FromMinutes(50),
+            "coding",
+            CompletionSoundChoice.Beep,
+            "Time to stretch");
+        var json = JsonSerializer.Serialize(preset);
+        var loaded = JsonSerializer.Deserialize<CustomPreset>(json);
+        Assert.Equal(preset, loaded);
+    }
+
+    [Fact]
+    public void Legacy_preset_without_overrides_deserializes()
+    {
+        // Simulates a settings.json produced by an older version — no
+        // CompletionSound/AlertMessage fields at all.
+        var legacy = "{\"Name\":\"Standup\",\"Duration\":\"00:15:00\"}";
+        var loaded = JsonSerializer.Deserialize<CustomPreset>(legacy);
+        Assert.NotNull(loaded);
+        Assert.Equal("Standup", loaded!.Name);
+        Assert.Null(loaded.CompletionSound);
+        Assert.Null(loaded.AlertMessage);
+    }
 }
