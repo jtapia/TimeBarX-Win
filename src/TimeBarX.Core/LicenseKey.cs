@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -27,11 +28,29 @@ public static class LicenseKey
     private const int SigBytes = 10;
 
     /// <summary>
-    /// Default signing secret. Replace at build time by setting MSBuild
-    /// constant <c>TIMEBARX_LICENSE_SECRET</c>, or override in tests via the
-    /// secret parameter on <see cref="TryVerify"/> / <see cref="Issue"/>.
+    /// Fallback signing secret used only for local dev and tests. Release builds
+    /// override it by setting the <c>TIMEBARX_LICENSE_SECRET</c> environment
+    /// variable (or the <c>LicenseSecret</c> MSBuild property), which the build
+    /// bakes into an <c>[AssemblyMetadata("TimeBarX.LicenseSecret", …)]</c>
+    /// attribute; <see cref="EffectiveSecret"/> prefers that at runtime. Tests
+    /// can still override per call via the secret parameter on
+    /// <see cref="TryVerify"/> / <see cref="Issue"/>.
     /// </summary>
     public const string DefaultSecret = "adf7b582786f421de3a36eae2891895ca829f55033791ad1";
+
+    /// <summary>
+    /// The secret actually used when no explicit override is passed: the
+    /// build-injected production secret if present, otherwise <see cref="DefaultSecret"/>.
+    /// </summary>
+    public static string EffectiveSecret { get; } = ResolveBuildSecret() ?? DefaultSecret;
+
+    private static string? ResolveBuildSecret()
+    {
+        var value = typeof(LicenseKey).Assembly
+            .GetCustomAttributes<AssemblyMetadataAttribute>()
+            .FirstOrDefault(a => a.Key == "TimeBarX.LicenseSecret")?.Value;
+        return string.IsNullOrEmpty(value) ? null : value;
+    }
 
     /// <summary>
     /// Verifies a license key against the secret. Returns <c>true</c> and the
@@ -66,7 +85,7 @@ public static class LicenseKey
         }
         if (sigBytes.Length != SigBytes) return false;
 
-        var expected = Sign(payloadBytes, secret ?? DefaultSecret);
+        var expected = Sign(payloadBytes, secret ?? EffectiveSecret);
         if (!CryptographicOperations.FixedTimeEquals(sigBytes, expected)) return false;
 
         payload = Encoding.UTF8.GetString(payloadBytes);
@@ -81,7 +100,7 @@ public static class LicenseKey
     public static string Issue(string payload, string? secret = null)
     {
         var payloadBytes = Encoding.UTF8.GetBytes(payload);
-        var sig = Sign(payloadBytes, secret ?? DefaultSecret);
+        var sig = Sign(payloadBytes, secret ?? EffectiveSecret);
         return $"{Prefix}-{Base32Encode(payloadBytes)}-{Base32Encode(sig)}";
     }
 

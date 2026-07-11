@@ -105,4 +105,22 @@ public class LicenseKeyTests
         var k2 = LicenseKey.Issue("alice", TestSecret);
         Assert.Equal(k1, k2);
     }
+
+    [Fact]
+    public void RoundTrips_Against_EffectiveSecret_When_No_Override()
+    {
+        // With no explicit secret both Issue and TryVerify use EffectiveSecret,
+        // so a key issued that way must verify that way.
+        var key = LicenseKey.Issue("carol@example.com");
+        Assert.True(LicenseKey.TryVerify(key, out var payload));
+        Assert.Equal("carol@example.com", payload);
+    }
+
+    [Fact]
+    public void EffectiveSecret_Falls_Back_To_Default_Without_Injection()
+    {
+        // Test builds don't inject TimeBarX.LicenseSecret, so the effective
+        // secret is the placeholder default.
+        Assert.Equal(LicenseKey.DefaultSecret, LicenseKey.EffectiveSecret);
+    }
 }
