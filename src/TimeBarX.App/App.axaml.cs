@@ -41,7 +41,8 @@ public partial class App : Application
         Controller = new TrayController(
             new TimeBarX.Core.JsonTimerStore(),
             new TimeBarX.Core.JsonSettingsStore(),
-            composed);
+            composed,
+            new Win32IdleProbe());
     }
 
     public DisplayManager? Displays { get; private set; }

@@ -17,12 +17,18 @@ public sealed class TrayController : INotifyPropertyChanged
     private readonly TimerEngine _engine = new();
     private readonly ITimerStore _store;
     private readonly ISettingsStore _settingsStore;
+    private readonly IIdleProbe _idleProbe;
+    private readonly SessionHistoryStore _history;
     private readonly DispatcherTimer _ticker;
 
     private string _currentPreset = DefaultPreset;
     private string? _currentLabel;
     private TimerState _lastState = TimerState.Idle;
     private AppSettings _settings;
+
+    // Set at Start/StartCustom, cleared at Stop; used to stamp the session
+    // record when the timer completes. Null when there's no active timer.
+    private DateTimeOffset? _startedAtUtc;
 
     // Last values pushed to the UI, so the 30 FPS refresh only raises
     // PropertyChanged when something actually changed (see RefreshFromEngine).
@@ -76,19 +82,26 @@ public sealed class TrayController : INotifyPropertyChanged
     public IEntitlements Entitlements { get; }
 
     public TrayController()
-        : this(new JsonTimerStore(), new JsonSettingsStore(), new FreeEntitlements())
+        : this(new JsonTimerStore(), new JsonSettingsStore(), new FreeEntitlements(), new NullIdleProbe())
     {
     }
 
     public TrayController(ITimerStore store, ISettingsStore settingsStore)
-        : this(store, settingsStore, new FreeEntitlements())
+        : this(store, settingsStore, new FreeEntitlements(), new NullIdleProbe())
     {
     }
 
     public TrayController(ITimerStore store, ISettingsStore settingsStore, IEntitlements entitlements)
+        : this(store, settingsStore, entitlements, new NullIdleProbe())
+    {
+    }
+
+    public TrayController(ITimerStore store, ISettingsStore settingsStore, IEntitlements entitlements, IIdleProbe idleProbe)
     {
         _store = store;
         _settingsStore = settingsStore;
+        _idleProbe = idleProbe;
+        _history = new SessionHistoryStore();
         _settings = _settingsStore.Load();
         Entitlements = entitlements;
         // Entitlement transitions (purchase / refund / restore) change what
@@ -159,6 +172,12 @@ public sealed class TrayController : INotifyPropertyChanged
                 _engine.StartAt(snapshot.EndTime.Value, snapshot.Total);
                 if (_engine.State == TimerState.Running)
                 {
+                    // Reconstruct a plausible start so the eventual completion
+                    // gets a StartedAt in the history log. Not perfectly
+                    // accurate — Pause segments across restart aren't tracked —
+                    // but Started = End − Total is close enough for a history
+                    // entry.
+                    _startedAtUtc = snapshot.EndTime.Value - snapshot.Total;
                     _ticker.Start();
                 }
                 else
@@ -174,6 +193,7 @@ public sealed class TrayController : INotifyPropertyChanged
 
             case TimerState.Paused:
                 _engine.RestorePaused(snapshot.ElapsedAtPause, snapshot.Total);
+                _startedAtUtc = DateTimeOffset.UtcNow - snapshot.ElapsedAtPause;
                 break;
 
             default:
@@ -200,6 +220,7 @@ public sealed class TrayController : INotifyPropertyChanged
         var duration = _settings.DefaultDuration > TimeSpan.Zero ? _settings.DefaultDuration : DefaultDuration;
         _currentPreset = FormatPreset(duration);
         _currentLabel = null;
+        _startedAtUtc = DateTimeOffset.UtcNow;
         _engine.Start(duration);
         _ticker.Start();
         Persist();
@@ -223,6 +244,7 @@ public sealed class TrayController : INotifyPropertyChanged
         _engine.Stop();
         _currentPreset = string.IsNullOrEmpty(preset) ? DefaultPreset : preset;
         _currentLabel = string.IsNullOrWhiteSpace(label) ? null : label.Trim();
+        _startedAtUtc = DateTimeOffset.UtcNow;
         _engine.Start(duration);
         _ticker.Start();
         Persist();
@@ -252,6 +274,7 @@ public sealed class TrayController : INotifyPropertyChanged
         _ticker.Stop();
         _store.Clear();
         _currentLabel = null;
+        _startedAtUtc = null;
         RefreshFromEngine();
     }
 
@@ -278,6 +301,19 @@ public sealed class TrayController : INotifyPropertyChanged
 
     private void RefreshFromEngine()
     {
+        // Auto-pause on idle: check before the engine tick so the pause lands on
+        // this frame rather than one frame late. Only fires while Running so a
+        // manually-paused user doesn't get "auto-paused" over their own pause.
+        if (_engine.State == TimerState.Running && _settings.AutoPauseOnIdleMinutes is { } minutes && minutes > 0)
+        {
+            var threshold = TimeSpan.FromMinutes(minutes);
+            if (_idleProbe.GetIdleTime() >= threshold)
+            {
+                _engine.Pause();
+                Persist();
+            }
+        }
+
         _engine.Tick();
 
         var current = _engine.State;
@@ -333,9 +369,27 @@ public sealed class TrayController : INotifyPropertyChanged
 
         if (justCompleted)
         {
+            RecordCompletion();
             Completed?.Invoke();
         }
     }
+
+    private void RecordCompletion()
+    {
+        if (!_settings.RecordSessionHistory) return;
+        if (_startedAtUtc is not { } startedAt) return;
+        var record = new SessionRecord(
+            StartedAt: startedAt,
+            CompletedAt: DateTimeOffset.UtcNow,
+            Duration: _engine.Total,
+            Preset: _currentPreset,
+            Label: _currentLabel);
+        _history.Append(record);
+        _startedAtUtc = null;
+    }
+
+    /// <summary>Absolute path to the history log — surfaced in Settings so users can inspect it.</summary>
+    public string HistoryPath => _history.Path;
 
     private string LabelSuffix => _currentLabel is null ? string.Empty : $" · {_currentLabel}";
 

@@ -22,6 +22,21 @@
                 <CheckBox Name="SoundCheck" Content="Play sound when timer completes" Click="OnSoundCheckClicked" />
                 <Separator />
                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <CheckBox Name="AutoPauseCheck" Content="Auto-pause when idle for" Click="OnAutoPauseClicked" VerticalAlignment="Center" />
+                    <NumericUpDown Name="AutoPauseMinutes"
+                                   Minimum="1" Maximum="240" Increment="1"
+                                   FormatString="0"
+                                   Width="90"
+                                   ValueChanged="OnAutoPauseMinutesChanged" />
+                    <TextBlock Text="minutes" VerticalAlignment="Center" />
+                </StackPanel>
+                <Separator />
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <CheckBox Name="RecordHistoryCheck" Content="Record completed sessions" Click="OnRecordHistoryClicked" VerticalAlignment="Center" />
+                    <Button Content="Show history file" Click="OnShowHistoryFileClicked" />
+                </StackPanel>
+                <Separator />
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <TextBlock Text="Custom presets" FontWeight="SemiBold" VerticalAlignment="Center" />
                     <Border Name="PresetsProChip"
                             IsVisible="False"

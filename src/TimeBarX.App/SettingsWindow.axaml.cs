@@ -14,6 +14,9 @@ public partial class SettingsWindow : Window
     private CheckBox? _soundCheck;
     private CheckBox? _gradientCheck;
     private CheckBox? _alwaysAboveCheck;
+    private CheckBox? _autoPauseCheck;
+    private NumericUpDown? _autoPauseMinutes;
+    private CheckBox? _recordHistoryCheck;
     private Control? _alwaysAboveWarning;
     private Slider? _opacitySlider;
     private TextBlock? _versionText;
@@ -40,6 +43,9 @@ public partial class SettingsWindow : Window
         _soundCheck = this.FindControl<CheckBox>("SoundCheck");
         _gradientCheck = this.FindControl<CheckBox>("GradientCheck");
         _alwaysAboveCheck = this.FindControl<CheckBox>("AlwaysAboveCheck");
+        _autoPauseCheck = this.FindControl<CheckBox>("AutoPauseCheck");
+        _autoPauseMinutes = this.FindControl<NumericUpDown>("AutoPauseMinutes");
+        _recordHistoryCheck = this.FindControl<CheckBox>("RecordHistoryCheck");
         _alwaysAboveWarning = this.FindControl<Control>("AlwaysAboveWarning");
         _opacitySlider = this.FindControl<Slider>("OpacitySlider");
         _versionText = this.FindControl<TextBlock>("VersionText");
@@ -227,6 +233,15 @@ public partial class SettingsWindow : Window
             if (_alwaysAboveCheck is not null) _alwaysAboveCheck.IsChecked = s.AlwaysAboveEverything;
             if (_alwaysAboveWarning is not null) _alwaysAboveWarning.IsVisible = s.AlwaysAboveEverything;
             if (_opacitySlider is not null) _opacitySlider.Value = s.Opacity;
+            if (_autoPauseCheck is not null)
+                _autoPauseCheck.IsChecked = s.AutoPauseOnIdleMinutes is > 0;
+            if (_autoPauseMinutes is not null)
+            {
+                _autoPauseMinutes.Value = s.AutoPauseOnIdleMinutes ?? 5;
+                _autoPauseMinutes.IsEnabled = s.AutoPauseOnIdleMinutes is > 0;
+            }
+            if (_recordHistoryCheck is not null)
+                _recordHistoryCheck.IsChecked = s.RecordSessionHistory;
 
             SyncRadioGroup(_defaultDurationRadios, s.DefaultDuration);
             SyncRadioGroup(_colorRadios, s.Color);
@@ -311,5 +326,63 @@ public partial class SettingsWindow : Window
     {
         if (!RequireProOrPrompt()) return;
         Update(x => x with { GradientMode = _gradientCheck?.IsChecked == true });
+    }
+
+    private void OnAutoPauseClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var on = _autoPauseCheck?.IsChecked == true;
+        var minutes = (int)(_autoPauseMinutes?.Value ?? 5);
+        if (minutes < 1) minutes = 5;
+        Update(x => x with { AutoPauseOnIdleMinutes = on ? minutes : null });
+        if (_autoPauseMinutes is not null) _autoPauseMinutes.IsEnabled = on;
+    }
+
+    private void OnAutoPauseMinutesChanged(object? s, Avalonia.Controls.NumericUpDownValueChangedEventArgs e)
+    {
+        if (_syncing) return;
+        // Only propagate while auto-pause is enabled; typing a number without
+        // enabling the checkbox shouldn't silently turn it on.
+        if (_autoPauseCheck?.IsChecked != true) return;
+        var minutes = (int)(e.NewValue ?? 5);
+        if (minutes < 1) minutes = 1;
+        Update(x => x with { AutoPauseOnIdleMinutes = minutes });
+    }
+
+    private void OnRecordHistoryClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+        => Update(x => x with { RecordSessionHistory = _recordHistoryCheck?.IsChecked == true });
+
+    private void OnShowHistoryFileClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var path = _controller?.HistoryPath;
+        if (string.IsNullOrWhiteSpace(path)) return;
+        try
+        {
+            // Reveal in Explorer: /select, opens the containing folder with the
+            // file highlighted, which works whether or not it exists yet (falls
+            // back to opening the folder).
+            var dir = System.IO.Path.GetDirectoryName(path);
+            if (System.IO.File.Exists(path))
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{path}\"",
+                    UseShellExecute = true,
+                });
+            }
+            else if (!string.IsNullOrEmpty(dir))
+            {
+                System.IO.Directory.CreateDirectory(dir);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = dir,
+                    UseShellExecute = true,
+                });
+            }
+        }
+        catch
+        {
+            // best-effort; the settings window shouldn't die because Explorer is missing.
+        }
     }
 }
