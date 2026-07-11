@@ -48,13 +48,12 @@ public static class DurationParser
         if (!m.Success) return false;
 
         var q = m.Groups["q"].Value.ToLowerInvariant();
-        var u = m.Groups["u"].Value.ToLowerInvariant();
-        var unit = u[0] == 'h' ? TimeSpan.FromHours(1) : TimeSpan.FromMinutes(1);
+        var isHour = m.Groups["u"].Value[0] is 'h' or 'H';
         TimeSpan duration = q switch
         {
-            "half" => unit == TimeSpan.FromHours(1) ? TimeSpan.FromMinutes(30) : TimeSpan.FromSeconds(30),
-            "quarter" => unit == TimeSpan.FromHours(1) ? TimeSpan.FromMinutes(15) : TimeSpan.FromSeconds(15),
-            _ => unit, // "a" / "an"
+            "half" => isHour ? TimeSpan.FromMinutes(30) : TimeSpan.FromSeconds(30),
+            "quarter" => isHour ? TimeSpan.FromMinutes(15) : TimeSpan.FromSeconds(15),
+            _ => isHour ? TimeSpan.FromHours(1) : TimeSpan.FromMinutes(1), // "a" / "an"
         };
 
         if (duration <= TimeSpan.Zero) return false;

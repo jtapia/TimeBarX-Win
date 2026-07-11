@@ -30,9 +30,6 @@ public sealed class HotkeyService : IDisposable
 
     public event Action? Pressed;
 
-    /// <summary>True once the message-only window exists (the thread is pumping).</summary>
-    public bool IsActive => _hwnd != IntPtr.Zero;
-
     /// <summary>
     /// True only if RegisterHotKey actually succeeded. False when another app
     /// already owns Ctrl+Shift+T globally, so callers can surface that instead

@@ -32,10 +32,7 @@ public sealed class TimerEngine
             };
 
             if (raw < TimeSpan.Zero) return TimeSpan.Zero;
-            if (raw >= _total)
-            {
-                return _total;
-            }
+            if (raw >= _total) return _total;
             return raw;
         }
     }

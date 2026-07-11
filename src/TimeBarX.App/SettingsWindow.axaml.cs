@@ -130,8 +130,7 @@ public partial class SettingsWindow : Window
 
     private void SyncProChips()
     {
-        var isPro = _controller?.Entitlements.IsPro ?? false;
-        var locked = !isPro;
+        var locked = !(_controller?.Entitlements.IsPro ?? false);
         if (_colorProChip is not null) _colorProChip.IsVisible = locked;
         if (_alwaysAboveProChip is not null) _alwaysAboveProChip.IsVisible = locked;
         if (_gradientProChip is not null) _gradientProChip.IsVisible = locked;

@@ -21,8 +21,6 @@ public sealed class DisplayManager : IDisposable
         _controller = controller;
     }
 
-    public IReadOnlyCollection<OverlayWindow> Overlays => _overlays.Values;
-
     public void Start()
     {
         // A Window is required to access Screens. Promote the first overlay we
