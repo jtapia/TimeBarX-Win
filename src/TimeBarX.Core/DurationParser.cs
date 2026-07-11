@@ -59,14 +59,17 @@ public static class DurationParser
 
         if (duration <= TimeSpan.Zero) return false;
 
-        var preset = duration.TotalHours >= 1
-            ? $"{(int)duration.TotalHours}h"
-            : $"{(int)duration.TotalMinutes}m";
+        var preset = PresetFor(duration);
 
         var label = ExtractTrailingLabel(input, m.Length);
         result = new ParsedDuration(duration, label, preset);
         return true;
     }
+
+    // Largest hour component we accept. Guards against int/TimeSpan overflow on
+    // untrusted input (e.g. a "timebarx://start?duration=99999999999h" link) and
+    // keeps durations in a sane range for a timer.
+    private const int MaxHours = 999;
 
     private static bool TryParseColon(string input, out ParsedDuration result)
     {
@@ -74,15 +77,14 @@ public static class DurationParser
         var m = ColonForm.Match(input);
         if (!m.Success) return false;
 
-        var a = int.Parse(m.Groups["a"].Value, CultureInfo.InvariantCulture);
-        var b = int.Parse(m.Groups["b"].Value, CultureInfo.InvariantCulture);
-        int? c = m.Groups["c"].Success
-            ? int.Parse(m.Groups["c"].Value, CultureInfo.InvariantCulture)
-            : null;
+        if (!TryParseComponent(m.Groups["a"].Value, MaxHours, out var a)) return false;
+        if (!TryParseComponent(m.Groups["b"].Value, 59, out var b)) return false;
+        int c = 0;
+        if (m.Groups["c"].Success && !TryParseComponent(m.Groups["c"].Value, 59, out c)) return false;
 
         TimeSpan duration;
         string preset;
-        if (c is null)
+        if (!m.Groups["c"].Success)
         {
             // a:b → minutes:seconds when a < 60 and there's no explicit hour context.
             // Heuristic: treat "1:30" as 1h30m (matches PLAN.md example).
@@ -91,8 +93,8 @@ public static class DurationParser
         }
         else
         {
-            duration = new TimeSpan(a, b, c.Value);
-            preset = $"{a}:{b:D2}:{c.Value:D2}";
+            duration = new TimeSpan(a, b, c);
+            preset = $"{a}:{b:D2}:{c:D2}";
         }
 
         if (duration <= TimeSpan.Zero) return false;
@@ -113,8 +115,17 @@ public static class DurationParser
 
         foreach (Match token in UnitToken.Matches(head.Value))
         {
-            var n = int.Parse(token.Groups["n"].Value, CultureInfo.InvariantCulture);
             var u = token.Groups["u"].Value.ToLowerInvariant();
+
+            // Bound each component to guard against int/TimeSpan overflow on
+            // untrusted input; the hour cap keeps the summed total sane too.
+            var limit = u[0] switch
+            {
+                'h' => MaxHours,
+                'm' => MaxHours * 60,
+                _ => MaxHours * 3600,
+            };
+            if (!TryParseComponent(token.Groups["n"].Value, limit, out var n)) return false;
 
             switch (u[0])
             {
@@ -133,11 +144,29 @@ public static class DurationParser
             }
         }
 
-        if (total <= TimeSpan.Zero) return false;
+        if (total <= TimeSpan.Zero || total > TimeSpan.FromHours(MaxHours)) return false;
 
         var label = ExtractTrailingLabel(input, head.Length);
         result = new ParsedDuration(total, label, string.Join(' ', presetParts));
         return true;
+    }
+
+    // Renders a canonical preset string that round-trips back through TryParse.
+    // Sub-minute durations must use seconds so we never emit a dead "0m".
+    private static string PresetFor(TimeSpan duration)
+    {
+        if (duration.TotalHours >= 1) return $"{(int)duration.TotalHours}h";
+        if (duration.TotalMinutes >= 1) return $"{(int)duration.TotalMinutes}m";
+        return $"{(int)duration.TotalSeconds}s";
+    }
+
+    // Parses a numeric component, rejecting values that don't fit in an int or
+    // exceed the given inclusive upper bound. The regex only matches \d+, so
+    // failure here means the number was too large rather than malformed.
+    private static bool TryParseComponent(string value, int max, out int result)
+    {
+        return int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out result)
+            && result <= max;
     }
 
     private static string? ExtractTrailingLabel(string input, int consumed)

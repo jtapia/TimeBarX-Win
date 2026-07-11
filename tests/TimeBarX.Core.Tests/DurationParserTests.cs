@@ -88,4 +88,38 @@ public class DurationParserTests
         Assert.Equal(TimeSpan.FromMinutes(30), parsed.Duration);
         Assert.Equal("standup", parsed.Label);
     }
+
+    [Theory]
+    [InlineData("99999999999h")]
+    [InlineData("600000000h")]
+    [InlineData("3000000:00")]
+    [InlineData("999999999m")]
+    [InlineData("1000h")]
+    public void Rejects_overflowing_input_without_throwing(string input)
+    {
+        Assert.False(DurationParser.TryParse(input, out _));
+    }
+
+    [Theory]
+    [InlineData("1:99")]
+    [InlineData("0:99")]
+    [InlineData("1:23:99")]
+    [InlineData("1:60")]
+    public void Rejects_out_of_range_colon_components(string input)
+    {
+        Assert.False(DurationParser.TryParse(input, out _));
+    }
+
+    [Theory]
+    [InlineData("half minute", 30)]
+    [InlineData("quarter minute", 15)]
+    public void Sub_minute_phrase_preset_round_trips(string input, int seconds)
+    {
+        Assert.True(DurationParser.TryParse(input, out var parsed));
+        Assert.Equal(TimeSpan.FromSeconds(seconds), parsed.Duration);
+        Assert.Equal($"{seconds}s", parsed.Preset);
+        // The preset must itself parse back to the same duration.
+        Assert.True(DurationParser.TryParse(parsed.Preset, out var round));
+        Assert.Equal(parsed.Duration, round.Duration);
+    }
 }
