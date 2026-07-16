@@ -134,6 +134,12 @@ public partial class UpgradeProDialog : Window
                     case RefreshResult.NotOwned:
                         ShowStatus("No prior purchase found on this Microsoft account.");
                         return;
+                    case RefreshResult.NoStoreRuntime:
+                        // Direct (non-MSIX) build: no Store to restore from.
+                        // Retrying can't help — steer to the license-key flow.
+                        ShowStatus("This build unlocks Pro with a license key. Enter it below.");
+                        OnShowLicenseClicked(sender, e);
+                        return;
                     default: // CheckFailed — don't claim "never purchased" on a failed query.
                         ShowStatus("Couldn't reach the Microsoft Store. Check your connection and try again.");
                         return;

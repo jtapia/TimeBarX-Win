@@ -14,6 +14,10 @@ public enum RefreshResult
     Owned,
     NotOwned,
     CheckFailed,
+    /// <summary>No Store runtime at all (direct/Inno build, no MSIX identity).
+    /// Distinct from CheckFailed: retrying can never succeed, so the caller
+    /// should point the user at the license-key flow, not "check your connection".</summary>
+    NoStoreRuntime,
 }
 
 /// <summary>
@@ -106,8 +110,10 @@ public sealed class StoreEntitlements : IEntitlements
         if (_context is null)
         {
             // No Store runtime (direct build / no package identity): the cached
-            // value stands and the license-key channel owns Pro here.
-            return _isPro ? RefreshResult.Owned : RefreshResult.CheckFailed;
+            // value stands and the license-key channel owns Pro here. Report
+            // NoStoreRuntime when not owned so Restore can steer to the license
+            // flow instead of blaming the network for an unretryable condition.
+            return _isPro ? RefreshResult.Owned : RefreshResult.NoStoreRuntime;
         }
 
         if (LooksLikePlaceholder(_addonStoreId))
