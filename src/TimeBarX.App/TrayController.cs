@@ -307,6 +307,11 @@ public sealed class TrayController : INotifyPropertyChanged
     private void StartPomodoroPhase(PomodoroSettings pomo, PomodoroPhase phase)
     {
         _pomodoroPhase = phase;
+        // A Pomodoro phase is not a custom preset: clear any preset left over
+        // from an earlier StartFromPreset (it isn't cleared on completion, only
+        // on Stop) so phase completions don't play that preset's override sound
+        // or report its stale alert message.
+        _activePreset = null;
         var duration = pomo.DurationFor(phase);
         _currentPreset = FormatPreset(duration);
         _currentLabel = phase switch
@@ -330,6 +335,9 @@ public sealed class TrayController : INotifyPropertyChanged
     {
         if (!CanPause) return;
         _engine.Pause();
+        // Nothing advances while paused, so stop the 30 FPS refresh loop rather
+        // than burning CPU/battery on unchanging frames. Resume() restarts it.
+        _ticker.Stop();
         Persist();
         RefreshFromEngine();
     }
@@ -388,6 +396,9 @@ public sealed class TrayController : INotifyPropertyChanged
             if (_idleProbe.GetIdleTime() >= threshold)
             {
                 _engine.Pause();
+                // Stop the refresh loop while auto-paused — this is exactly when
+                // the machine should be quiescent. Resume() restarts it.
+                _ticker.Stop();
                 Persist();
             }
         }
