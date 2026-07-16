@@ -84,6 +84,42 @@ public class JsonTimerStoreTests : IDisposable
     }
 
     [Fact]
+    public void Load_returns_null_for_non_positive_total()
+    {
+        // Corrupt-but-valid JSON: a negative Total would make StartAt/RestorePaused
+        // throw at startup, crashing the app on every launch. Reject it as "no
+        // saved timer" instead.
+        File.WriteAllText(_path,
+            "{\"State\":\"Running\",\"EndTime\":\"2026-06-15T12:00:00+00:00\"," +
+            "\"Total\":\"-00:05:00\",\"ElapsedAtPause\":\"00:00:00\",\"Preset\":\"5m\"}");
+        var store = new JsonTimerStore(_path);
+
+        Assert.Null(store.Load());
+    }
+
+    [Fact]
+    public void Load_returns_null_for_undefined_state()
+    {
+        File.WriteAllText(_path,
+            "{\"State\":999,\"EndTime\":null,\"Total\":\"00:25:00\"," +
+            "\"ElapsedAtPause\":\"00:00:00\",\"Preset\":\"25m\"}");
+        var store = new JsonTimerStore(_path);
+
+        Assert.Null(store.Load());
+    }
+
+    [Fact]
+    public void Load_returns_null_when_elapsed_exceeds_total()
+    {
+        File.WriteAllText(_path,
+            "{\"State\":\"Paused\",\"EndTime\":null,\"Total\":\"00:25:00\"," +
+            "\"ElapsedAtPause\":\"01:00:00\",\"Preset\":\"25m\"}");
+        var store = new JsonTimerStore(_path);
+
+        Assert.Null(store.Load());
+    }
+
+    [Fact]
     public void Concurrent_saves_never_leave_a_corrupt_target()
     {
         var store = new JsonTimerStore(_path);

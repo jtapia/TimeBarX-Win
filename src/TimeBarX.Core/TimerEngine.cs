@@ -113,9 +113,16 @@ public sealed class TimerEngine
         State = TimerState.Running;
     }
 
+    // Anchor the projected end time to (now + Remaining) rather than
+    // (start + total). Elapsed is monotonic-protected (max of mono/wall deltas),
+    // but _startedAt is wall-clock only; after a backward wall-clock jump the
+    // start-anchored form pushes EndTime too far into the future, so a saved
+    // snapshot rehydrates with the user's progress erased. Using Remaining keeps
+    // the persisted end time consistent with the elapsed the engine actually
+    // reports.
     public DateTimeOffset? EndTime => State switch
     {
-        TimerState.Running => _startedAt!.Value + (_total - _accumulatedElapsed),
+        TimerState.Running => _clock.UtcNow + Remaining,
         TimerState.Paused => null,
         _ => null,
     };
