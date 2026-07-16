@@ -13,7 +13,6 @@ namespace TimeBarX.App;
 public sealed class HotkeyService : IDisposable
 {
     private const int HotkeyId = 0xB1;
-    private const uint MOD_ALT = 0x1;
     private const uint MOD_CONTROL = 0x2;
     private const uint MOD_SHIFT = 0x4;
     private const uint MOD_NOREPEAT = 0x4000;

@@ -167,6 +167,11 @@
             <StackPanel Margin="12" Spacing="10">
                 <TextBlock Text="Quick timer input" FontWeight="SemiBold" />
                 <TextBlock Text="Ctrl + Shift + T" FontFamily="Cascadia Mono,Consolas,monospace" />
+                <TextBlock Name="HotkeyConflictWarning"
+                           IsVisible="False"
+                           TextWrapping="Wrap"
+                           Foreground="IndianRed"
+                           Text="Another app is already using Ctrl + Shift + T, so the shortcut is inactive. You can still open quick input from the tray menu (Custom…)." />
                 <Separator />
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <TextBlock Text="Automation" FontWeight="SemiBold" VerticalAlignment="Center" />

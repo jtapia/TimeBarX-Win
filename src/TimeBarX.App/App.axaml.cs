@@ -47,6 +47,15 @@ public partial class App : Application
 
     public DisplayManager? Displays { get; private set; }
 
+    /// <summary>
+    /// True when the quick-input hotkey failed to register because another app
+    /// already owns Ctrl+Shift+T. Null when the hotkey isn't applicable yet /
+    /// on this platform. Read by Settings to warn the user the shortcut is inert.
+    /// </summary>
+    public bool HotkeyConflict => _hotkey is { IsRegistered: false }
+        && System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+            System.Runtime.InteropServices.OSPlatform.Windows);
+
     private PowerEventBridge? _power;
     private HotkeyService? _hotkey;
     private QuickInputWindow? _quickInput;

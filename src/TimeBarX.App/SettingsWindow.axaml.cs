@@ -101,6 +101,15 @@ public partial class SettingsWindow : Window
             _versionText.Text = $"Version {version}";
         }
 
+        // Warn if the global quick-input hotkey couldn't be registered because
+        // another app already owns Ctrl+Shift+T — otherwise it silently does
+        // nothing and the user has no way to know why.
+        var conflictWarning = this.FindControl<TextBlock>("HotkeyConflictWarning");
+        if (conflictWarning is not null && Avalonia.Application.Current is App app)
+        {
+            conflictWarning.IsVisible = app.HotkeyConflict;
+        }
+
         DataContextChanged += OnDataContextChanged;
     }
 
