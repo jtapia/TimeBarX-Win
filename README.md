@@ -12,6 +12,13 @@ TimeBarX menu-bar timer.
 
 ---
 
+## What's new in 1.0.7
+
+- **Completion notifications** — a native Windows toast when a timer
+  finishes, with **Restart** (same duration and label) and **+5 min**
+  buttons. Works in both the Store and direct builds; toggle it in
+  Settings → General. Additive to the existing sound and on-screen flash.
+
 ## What's new in 1.0.6
 
 Feature parity pass, migrating the most useful additions from the macOS
@@ -118,7 +125,7 @@ See `INTEGRATIONS.md` for PowerToys / Flow Launcher / AutoHotkey examples.
 dotnet test
 ```
 
-166 unit tests cover the engine, parsers, persistence, color math,
+179 unit tests cover the engine, parsers, persistence, color math,
 Pomodoro cadence, session history, and update-version comparison. The
 tests use a `FakeClock`, so they're deterministic and fast (<1 s).
 
