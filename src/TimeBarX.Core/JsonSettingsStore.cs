@@ -18,6 +18,7 @@ public sealed class JsonSettingsStore : ISettingsStore
     public JsonSettingsStore(string? path = null)
     {
         _path = path ?? DefaultPath();
+        AtomicFile.SweepOrphanedTemps(_path);
     }
 
     public static string DefaultPath()
@@ -31,7 +32,11 @@ public sealed class JsonSettingsStore : ISettingsStore
         try
         {
             if (!File.Exists(_path)) return AppSettings.Default;
-            using var stream = File.OpenRead(_path);
+            // Share Delete so a concurrent atomic-rename save (AtomicFile replaces
+            // the target via File.Move) can't fail because this read holds the
+            // file open. Read too, in case another reader is active.
+            using var stream = new FileStream(
+                _path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
             var loaded = JsonSerializer.Deserialize<AppSettings>(stream, Options);
             return loaded?.Sanitize() ?? AppSettings.Default;
         }

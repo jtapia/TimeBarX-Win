@@ -103,7 +103,13 @@ public sealed record AppSettings(
             Position = position,
             DefaultDuration = duration,
             HideForProcesses = HideForProcesses ?? DefaultHideList,
-            CustomPresets = CustomPresets ?? Array.Empty<CustomPreset>(),
+            // Drop malformed presets (empty name, non-positive duration) rather
+            // than surfacing a nameless preset whose click would feed
+            // TimerEngine.Start(Zero) and throw. IsValid would otherwise be dead
+            // code on the load path.
+            CustomPresets = (CustomPresets ?? Array.Empty<CustomPreset>())
+                .Where(p => p.IsValid)
+                .ToArray(),
             CompletionSound = sound,
             AutoPauseOnIdleMinutes = idle,
             Pomodoro = pomodoro,

@@ -35,6 +35,29 @@ internal static class AtomicFile
         }
     }
 
+    /// <summary>
+    /// Deletes temp files orphaned by a hard crash between CreateNew and Move for
+    /// the given target (siblings matching <c>&lt;path&gt;.*.tmp</c>). A clean write
+    /// removes its own temp, so any remaining one is from a crashed process. Best
+    /// effort and safe to call at startup; skips temp files still held open by a
+    /// concurrent live writer (their delete throws and is swallowed).
+    /// </summary>
+    public static void SweepOrphanedTemps(string path)
+    {
+        try
+        {
+            var dir = Path.GetDirectoryName(path);
+            if (string.IsNullOrEmpty(dir) || !Directory.Exists(dir)) return;
+            var prefix = Path.GetFileName(path);
+            foreach (var stale in Directory.EnumerateFiles(dir, $"{prefix}.*.tmp"))
+                TryDelete(stale);
+        }
+        catch
+        {
+            // best-effort sweep
+        }
+    }
+
     private static void TryDelete(string path)
     {
         try

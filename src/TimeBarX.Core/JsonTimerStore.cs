@@ -19,6 +19,7 @@ public sealed class JsonTimerStore : ITimerStore
     public JsonTimerStore(string? path = null)
     {
         _path = path ?? DefaultPath();
+        AtomicFile.SweepOrphanedTemps(_path);
     }
 
     public static string DefaultPath()

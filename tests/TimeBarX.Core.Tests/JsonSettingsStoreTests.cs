@@ -78,6 +78,19 @@ public class JsonSettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Construction_sweeps_orphaned_temp_files()
+    {
+        // Simulate a temp file left by a crash between CreateNew and Move.
+        var dir = Path.GetDirectoryName(_path)!;
+        var orphan = $"{_path}.99999.{Guid.NewGuid():N}.tmp";
+        File.WriteAllText(orphan, "leftover");
+
+        _ = new JsonSettingsStore(_path);
+
+        Assert.False(File.Exists(orphan));
+    }
+
+    [Fact]
     public void Load_replaces_unknown_enum_string_with_default_without_discarding_other_fields()
     {
         // "Orange" is not a defined BarColor name — it simulates a settings.json
