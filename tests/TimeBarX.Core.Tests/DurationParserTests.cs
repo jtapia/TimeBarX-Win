@@ -27,6 +27,10 @@ public class DurationParserTests
     [InlineData("1:30", 1, 30, 0)]
     [InlineData("0:45", 0, 45, 0)]
     [InlineData("1:23:45", 1, 23, 45)]
+    // Two-part colon form is always hours:minutes, so "90:00" is 90 hours (not
+    // 90 minutes). Locks the documented behavior against a minutes:seconds
+    // reinterpretation; use "1:30:00" for an explicit h:m:s form.
+    [InlineData("90:00", 90, 0, 0)]
     public void Parses_colon_form(string input, int h, int m, int s)
     {
         Assert.True(DurationParser.TryParse(input, out var parsed));

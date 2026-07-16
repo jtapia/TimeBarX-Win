@@ -132,8 +132,9 @@ public static class DurationParser
         string preset;
         if (!m.Groups["c"].Success)
         {
-            // a:b → minutes:seconds when a < 60 and there's no explicit hour context.
-            // Heuristic: treat "1:30" as 1h30m (matches PLAN.md example).
+            // Two-part colon form is always hours:minutes (never minutes:seconds),
+            // so "1:30" is 1h30m and "90:00" is 90h — matches the PLAN.md example
+            // and the preset round-trip. Use "1:30:00" for a three-part h:m:s form.
             duration = new TimeSpan(a, b, 0);
             preset = $"{a}:{b:D2}";
         }
