@@ -14,6 +14,12 @@ public partial class QuickInputWindow : Window
     private TextBlock? _hint;
     private Avalonia.Media.IBrush? _defaultHintBrush;
 
+    // Set once Enter commits a valid result. Guards the Deactivated handler from
+    // nulling Result during the Enter→Close sequence: closing the active window
+    // delivers a deactivation, and a focus-steal in the same instant can race it,
+    // which would silently drop the timer the user just started.
+    private bool _committed;
+
     public QuickInputWindow()
     {
         InitializeComponent();
@@ -28,6 +34,9 @@ public partial class QuickInputWindow : Window
         // too so they work even when the TextBox doesn't have focus.
         Deactivated += (_, _) =>
         {
+            // Don't clobber a result Enter already committed (Close raises
+            // Deactivated); only treat deactivation as a cancel.
+            if (_committed) return;
             Result = null;
             Close();
         };
@@ -54,6 +63,7 @@ public partial class QuickInputWindow : Window
             if (DurationParser.TryParse(text, out var parsed))
             {
                 Result = parsed;
+                _committed = true;
                 Close();
             }
             else
