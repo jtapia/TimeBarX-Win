@@ -170,7 +170,10 @@ Generates a signed, registry-aware installer that also registers the
    `assets/README.md`.
 3. Compile: `iscc scripts/installer.iss`
 
-Output: `artifacts/installer/TimeBarX-<version>-Setup.exe`.
+Output: `artifacts/installer/TimeBarX-Setup.exe` (or `TimeBarX-Setup-arm64.exe`
+for an ARM64 build with `iscc /DArch=arm64 scripts/installer.iss`). The
+filename is intentionally version-less — the version lives in the download
+URL path and in the installer's version resource, not the filename.
 
 For production distribution you should also sign both the EXE and the
 installer — full walkthrough in `SIGNING.md`. The full release recipe is
