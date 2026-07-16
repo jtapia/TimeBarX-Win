@@ -15,7 +15,7 @@
 ; in Add/Remove Programs and the setup EXE's version resource, and an in-app
 ; update check compares against it — a stale value makes it loop on "update
 ; available".
-#define AppVersion "1.0.6.0"
+#define AppVersion "1.0.7.0"
 #define Publisher "TimeBarX"
 #define ExeName "TimeBarX.App.exe"
 
