@@ -292,6 +292,16 @@ public sealed class TrayController : INotifyPropertyChanged
     public string? ActiveAlertMessage => _activePreset?.AlertMessage;
 
     /// <summary>
+    /// Preset string of the current/just-finished timer (e.g. "25m", "1h 30m").
+    /// Valid to read from the Completed handler — cleared only on Stop / a new
+    /// start — so a completion toast can offer a "Restart" of the same duration.
+    /// </summary>
+    public string CompletedPreset => _currentPreset;
+
+    /// <summary>Label of the current/just-finished timer, or null.</summary>
+    public string? CompletedLabel => _currentLabel;
+
+    /// <summary>
     /// Starts (or restarts) the Pomodoro cycle: the current phase is set to
     /// Work and a timer of the configured Work length kicks off. On completion,
     /// with AutoAdvance enabled, subsequent phases follow automatically.

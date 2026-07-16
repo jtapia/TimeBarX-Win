@@ -76,7 +76,10 @@ Source: "{#PublishDir}\*"; DestDir: "{app}"; \
   Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\{#ExeName}"; Tasks: startmenuicon
+; AppUserModelID must match WindowsToastNotifier.DirectChannelAumid — Windows
+; keys desktop toast notifications to the AUMID on a Start-menu shortcut, so
+; without this the direct build's completion toasts are silently dropped.
+Name: "{group}\{#AppName}"; Filename: "{app}\{#ExeName}"; Tasks: startmenuicon; AppUserModelID: "EduardoTapia.TimeBarX.Direct"
 
 [Registry]
 ; Register the timebarx:// URI scheme so launchers and shortcuts can drive the timer.

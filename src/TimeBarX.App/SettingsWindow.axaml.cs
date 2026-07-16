@@ -12,6 +12,7 @@ public partial class SettingsWindow : Window
     private bool _syncing;
 
     private CheckBox? _soundCheck;
+    private CheckBox? _toastCheck;
     private CheckBox? _gradientCheck;
     private CheckBox? _alwaysAboveCheck;
     private CheckBox? _autoPauseCheck;
@@ -47,6 +48,7 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         _soundCheck = this.FindControl<CheckBox>("SoundCheck");
+        _toastCheck = this.FindControl<CheckBox>("ToastCheck");
         _gradientCheck = this.FindControl<CheckBox>("GradientCheck");
         _alwaysAboveCheck = this.FindControl<CheckBox>("AlwaysAboveCheck");
         _autoPauseCheck = this.FindControl<CheckBox>("AutoPauseCheck");
@@ -258,6 +260,7 @@ public partial class SettingsWindow : Window
         {
             var s = _controller.Settings;
             if (_soundCheck is not null) _soundCheck.IsChecked = s.EffectiveCompletionSound != CompletionSoundChoice.Off;
+            if (_toastCheck is not null) _toastCheck.IsChecked = s.ShowCompletionToast;
             if (_gradientCheck is not null) _gradientCheck.IsChecked = s.GradientMode;
             if (_alwaysAboveCheck is not null) _alwaysAboveCheck.IsChecked = s.AlwaysAboveEverything;
             if (_alwaysAboveWarning is not null) _alwaysAboveWarning.IsVisible = s.AlwaysAboveEverything;
@@ -429,6 +432,9 @@ public partial class SettingsWindow : Window
 
     private void OnRecordHistoryClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
         => Update(x => x with { RecordSessionHistory = _recordHistoryCheck?.IsChecked == true });
+
+    private void OnToastCheckClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+        => Update(x => x with { ShowCompletionToast = _toastCheck?.IsChecked == true });
 
     private PomodoroSettings CurrentPomodoro()
         => _controller?.Settings.Pomodoro ?? PomodoroSettings.Default;

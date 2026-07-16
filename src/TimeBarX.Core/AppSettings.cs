@@ -36,7 +36,8 @@ public sealed record AppSettings(
     CompletionSoundChoice? CompletionSound = null,
     int? AutoPauseOnIdleMinutes = null,
     PomodoroSettings? Pomodoro = null,
-    bool RecordSessionHistory = true)
+    bool RecordSessionHistory = true,
+    bool ShowCompletionToast = true)
 {
     public static IReadOnlyList<string> DefaultHideList { get; } = new[]
     {
@@ -58,7 +59,8 @@ public sealed record AppSettings(
         CompletionSound: null,
         AutoPauseOnIdleMinutes: null,
         Pomodoro: null,
-        RecordSessionHistory: true);
+        RecordSessionHistory: true,
+        ShowCompletionToast: true);
 
     /// <summary>
     /// The completion sound to actually play, folding legacy settings files

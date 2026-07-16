@@ -68,4 +68,32 @@ public class AppSettingsTests : IDisposable
         Assert.Equal(1.0, settings.WithOpacity(5).Opacity);
         Assert.Equal(0.42, settings.WithOpacity(0.42).Opacity);
     }
+
+    [Fact]
+    public void ShowCompletionToast_defaults_on()
+    {
+        Assert.True(AppSettings.Default.ShowCompletionToast);
+    }
+
+    [Fact]
+    public void ShowCompletionToast_round_trips_when_disabled()
+    {
+        var store = new JsonSettingsStore(_path);
+        store.Save(AppSettings.Default with { ShowCompletionToast = false });
+
+        Assert.False(store.Load().ShowCompletionToast);
+    }
+
+    [Fact]
+    public void Legacy_settings_without_toast_field_default_on()
+    {
+        // A settings.json written before ShowCompletionToast existed must not
+        // silently disable toasts — the missing field takes the record default.
+        File.WriteAllText(_path,
+            "{\"Color\":\"Blue\",\"Height\":\"Normal\",\"Opacity\":1.0,\"GradientMode\":false," +
+            "\"PlayCompletionSound\":false,\"DefaultDuration\":\"00:25:00\",\"Position\":\"Top\"}");
+        var store = new JsonSettingsStore(_path);
+
+        Assert.True(store.Load().ShowCompletionToast);
+    }
 }
