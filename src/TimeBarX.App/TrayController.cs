@@ -482,14 +482,21 @@ public sealed class TrayController : INotifyPropertyChanged
 
         if (phase == PomodoroPhase.Work) _pomodoroWorkCount++;
         var next = pomo.NextPhase(phase, _pomodoroWorkCount);
-        // Schedule the transition onto the dispatcher so the engine's Completed
-        // → Idle bookkeeping this frame settles before we Start again.
-        Dispatcher.UIThread.Post(() =>
+        // Delay the transition until the completion flash/pulse has played, so the
+        // user actually sees the "phase ended" cue. Starting the next phase
+        // immediately (next dispatcher iteration) raises IsBarVisible, which makes
+        // the overlay cancel the just-started animation ~1 frame in. The delay
+        // covers only the attention portion; the trailing fade is superseded by
+        // the next timer, which is the desired effect.
+        var advance = new DispatcherTimer { Interval = CompletionAnimator.AttentionDuration };
+        advance.Tick += (_, _) =>
         {
-            // A Stop or manual Start between now and dispatch cancels the advance.
+            advance.Stop();
+            // A Stop or manual Start during the delay cancels the advance.
             if (_pomodoroPhase != phase) return;
             StartPomodoroPhase(pomo, next);
-        });
+        };
+        advance.Start();
         return true;
     }
 
