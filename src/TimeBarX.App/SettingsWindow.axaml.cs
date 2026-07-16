@@ -136,6 +136,14 @@ public partial class SettingsWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        // Flush a pending debounced opacity write before tearing down, so closing
+        // the window right after a drag doesn't lose the final value.
+        if (_opacityDebounce is { IsEnabled: true })
+        {
+            _opacityDebounce.Stop();
+            Update(x => x.WithOpacity(_pendingOpacity));
+        }
+
         // The controller and entitlements outlive this window, so unhook on close;
         // otherwise every opened-then-closed Settings window stays rooted and keeps
         // running SyncFromSettings/SyncProChips on each settings or entitlement change.
@@ -304,16 +312,35 @@ public partial class SettingsWindow : Window
     private void OnDefault25Clicked(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { DefaultDuration = TimeSpan.FromMinutes(25) });
     private void OnDefault50Clicked(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { DefaultDuration = TimeSpan.FromMinutes(50) });
     private void OnDefault90Clicked(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { DefaultDuration = TimeSpan.FromMinutes(90) });
+    // Remembers the sound choice while the checkbox is unchecked, so re-enabling
+    // restores the user's actual pick (set via preset/config) instead of forcing
+    // Asterisk and silently discarding e.g. Exclamation.
+    private CompletionSoundChoice _lastSoundChoice = CompletionSoundChoice.Asterisk;
+
     private void OnSoundCheckClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
     {
         var on = _soundCheck?.IsChecked == true;
         // Keep the legacy bool and the new enum in sync so both surfaces —
         // upgrading users reading only PlayCompletionSound and new callers
         // using EffectiveCompletionSound — see the same choice.
-        Update(x => x with
+        Update(x =>
         {
-            PlayCompletionSound = on,
-            CompletionSound = on ? CompletionSoundChoice.Asterisk : CompletionSoundChoice.Off,
+            if (on)
+            {
+                // Prefer whatever real choice is already stored (a preset/config
+                // pick); otherwise fall back to the last remembered choice.
+                var restore = x.CompletionSound is { } cs && cs != CompletionSoundChoice.Off
+                    ? cs
+                    : _lastSoundChoice;
+                if (restore == CompletionSoundChoice.Off) restore = CompletionSoundChoice.Asterisk;
+                return x with { PlayCompletionSound = true, CompletionSound = restore };
+            }
+
+            // Turning it off: remember the current real choice so we can bring it
+            // back on re-enable.
+            if (x.CompletionSound is { } prev && prev != CompletionSoundChoice.Off)
+                _lastSoundChoice = prev;
+            return x with { PlayCompletionSound = false, CompletionSound = CompletionSoundChoice.Off };
         });
     }
 
@@ -345,10 +372,33 @@ public partial class SettingsWindow : Window
     private void OnPositionBottom(object? s, Avalonia.Interactivity.RoutedEventArgs e)
         => Update(x => x with { Position = BarPosition.Bottom });
 
+    // Debounce continuous opacity drags: each tick otherwise writes settings.json
+    // and fans out SettingsChanged (tray-menu rebuild + overlay relayout on every
+    // display). Coalesce to one write shortly after the user stops moving.
+    private Avalonia.Threading.DispatcherTimer? _opacityDebounce;
+    private double _pendingOpacity;
+
     private void OnOpacityChanged(object? s, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
     {
         if (_syncing) return;
-        Update(x => x.WithOpacity(e.NewValue));
+        _pendingOpacity = e.NewValue;
+        _opacityDebounce ??= CreateOpacityDebounce();
+        _opacityDebounce.Stop();
+        _opacityDebounce.Start();
+    }
+
+    private Avalonia.Threading.DispatcherTimer CreateOpacityDebounce()
+    {
+        var timer = new Avalonia.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(150),
+        };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            Update(x => x.WithOpacity(_pendingOpacity));
+        };
+        return timer;
     }
 
     private void OnGradientClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
