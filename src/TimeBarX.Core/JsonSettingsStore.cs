@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace TimeBarX.Core;
 
@@ -8,7 +7,10 @@ public sealed class JsonSettingsStore : ISettingsStore
     private static readonly JsonSerializerOptions Options = new()
     {
         WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() },
+        // Tolerant so an unknown enum value (a setting written by a newer version,
+        // or a hand-edit typo) doesn't abort the whole load and let the next Save
+        // wipe every unrelated user setting. See TolerantEnumConverter.
+        Converters = { new TolerantEnumConverter() },
     };
 
     private readonly string _path;
