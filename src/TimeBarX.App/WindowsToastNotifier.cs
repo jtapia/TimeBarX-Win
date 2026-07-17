@@ -28,6 +28,9 @@ public sealed class WindowsToastNotifier : IToastNotifier
     public const string DirectChannelAumid = "EduardoTapia.TimeBarX.Direct";
 
     private readonly bool _available;
+    // Package identity is fixed at process start (MSIX vs. direct build), so
+    // cache the probe result rather than P/Invoking on every ShowCompletion.
+    private readonly bool _hasPackageIdentity;
 
     public WindowsToastNotifier()
     {
@@ -36,7 +39,8 @@ public sealed class WindowsToastNotifier : IToastNotifier
         // package-supplied identity, so skip it when running packaged.
         try
         {
-            if (!HasPackageIdentity())
+            _hasPackageIdentity = HasPackageIdentity();
+            if (!_hasPackageIdentity)
                 SetCurrentProcessExplicitAppUserModelID(DirectChannelAumid);
             _available = true;
         }
@@ -66,7 +70,7 @@ public sealed class WindowsToastNotifier : IToastNotifier
     }
 
     private ToastNotifier Notifier() =>
-        HasPackageIdentity()
+        _hasPackageIdentity
             ? ToastNotificationManager.CreateToastNotifier()
             : ToastNotificationManager.CreateToastNotifier(DirectChannelAumid);
 
@@ -77,10 +81,13 @@ public sealed class WindowsToastNotifier : IToastNotifier
     // the XML.
     private static string BuildToastXml(ToastCompletionInfo info)
     {
-        var title = SecurityElement.Escape(info.Title) ?? string.Empty;
-        var body = SecurityElement.Escape(info.Body) ?? string.Empty;
-        var restart = SecurityElement.Escape(info.RestartUri) ?? string.Empty;
-        var extend = SecurityElement.Escape(info.ExtendUri) ?? string.Empty;
+        // ToastCompletionInfo's four string fields are non-nullable and
+        // SecurityElement.Escape only returns null for null input, so no
+        // fallback is needed here.
+        var title = SecurityElement.Escape(info.Title);
+        var body = SecurityElement.Escape(info.Body);
+        var restart = SecurityElement.Escape(info.RestartUri);
+        var extend = SecurityElement.Escape(info.ExtendUri);
 
         var bodyLine = string.IsNullOrEmpty(body)
             ? string.Empty
