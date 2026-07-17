@@ -81,17 +81,22 @@ public sealed class WindowsToastNotifier : IToastNotifier
     // the XML.
     private static string BuildToastXml(ToastCompletionInfo info)
     {
-        // ToastCompletionInfo's four string fields are non-nullable and
+        // Title/Body/RestartUri are non-nullable on the record struct, and
         // SecurityElement.Escape only returns null for null input, so no
-        // fallback is needed here.
+        // fallback is needed. ExtendUri is nullable — a null value omits the
+        // "+5 min" action entirely (used during Pomodoro to avoid silently
+        // breaking the phase chain).
         var title = SecurityElement.Escape(info.Title);
         var body = SecurityElement.Escape(info.Body);
         var restart = SecurityElement.Escape(info.RestartUri);
-        var extend = SecurityElement.Escape(info.ExtendUri);
 
         var bodyLine = string.IsNullOrEmpty(body)
             ? string.Empty
             : $"<text>{body}</text>";
+
+        var extendAction = string.IsNullOrEmpty(info.ExtendUri)
+            ? string.Empty
+            : $"""<action content="+5 min" activationType="protocol" arguments="{SecurityElement.Escape(info.ExtendUri)}" />""";
 
         return $"""
             <toast activationType="protocol">
@@ -103,7 +108,7 @@ public sealed class WindowsToastNotifier : IToastNotifier
               </visual>
               <actions>
                 <action content="Restart" activationType="protocol" arguments="{restart}" />
-                <action content="+5 min" activationType="protocol" arguments="{extend}" />
+                {extendAction}
               </actions>
             </toast>
             """;

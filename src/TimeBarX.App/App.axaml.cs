@@ -183,8 +183,9 @@ public partial class App : Application
     }
 
     // Additive to the sound + overlay flash. Toast buttons carry timebarx://
-    // commands tagged src=toast so HandleUri accepts them even for non-Pro users
-    // (clicking our own UI is not the Pro-gated automation surface).
+    // commands stamped with a per-launch nonce so HandleUri accepts them even
+    // for non-Pro users (clicking our own UI is not the Pro-gated automation
+    // surface).
     private void ShowCompletionToast()
     {
         if (!Controller.Settings.ShowCompletionToast) return;
@@ -196,11 +197,23 @@ public partial class App : Application
             : ToastCommandUri("start",
                 $"duration={Uri.EscapeDataString(preset)}" +
                 (string.IsNullOrWhiteSpace(label) ? "" : $"&label={Uri.EscapeDataString(label)}"));
-        var extend = ToastCommandUri("start", "duration=5m");
+        // Skip the "+5 min" action during an active Pomodoro cycle: it would
+        // call StartCustom (via the URI), which clears _pomodoroPhase and
+        // silently abandons the phase chain — a bare 5-minute timer is not
+        // what a Pomodoro user asked for. Restart also drops the phase, but
+        // "run this phase's duration again" is a defensible interpretation of
+        // Restart in the Pomodoro context (auto-advance's guard skips
+        // re-firing when the phase has cleared, so no double-start).
+        var extend = Controller.CurrentPomodoroPhase is null
+            ? ToastCommandUri("start", "duration=5m")
+            : null;
 
         _toasts.ShowCompletion(new ToastCompletionInfo(
             Title: string.IsNullOrWhiteSpace(label) ? "Timer complete" : $"{label} complete",
-            Body: string.IsNullOrWhiteSpace(label) ? "" : "TimeBarX",
+            // Body left empty: the OS already renders the app name in the
+            // toast header, so a redundant "TimeBarX" line adds noise and
+            // pushes the actions down.
+            Body: string.Empty,
             RestartUri: restart,
             ExtendUri: extend));
     }
