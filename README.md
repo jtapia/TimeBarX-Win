@@ -12,6 +12,17 @@ TimeBarX menu-bar timer.
 
 ---
 
+## What's new in 1.0.8
+
+- **Taskbar jump list** — right-click the TimeBarX taskbar or Start-menu
+  icon for one-click **Start 25 min**, **Start 50 min**, **Pause**,
+  **Resume**, and **Stop**. Works in both the Store and direct builds.
+- **Toast hardening** — the completion toast's action buttons are now
+  authorized with a per-launch token instead of a fixed tag, so an
+  external launcher can't forge a Pro-gated command. The **+5 min**
+  button is hidden during a Pomodoro cycle (where it would have broken
+  the phase chain), and the toast body no longer repeats the app name.
+
 ## What's new in 1.0.7
 
 - **Completion notifications** — a native Windows toast when a timer
@@ -125,9 +136,10 @@ See `INTEGRATIONS.md` for PowerToys / Flow Launcher / AutoHotkey examples.
 dotnet test
 ```
 
-179 unit tests cover the engine, parsers, persistence, color math,
-Pomodoro cadence, session history, and update-version comparison. The
-tests use a `FakeClock`, so they're deterministic and fast (<1 s).
+184 unit tests cover the engine, parsers, persistence, color math,
+Pomodoro cadence, session history, update-version comparison, and
+jump-list URI round-tripping. The tests use a `FakeClock`, so they're
+deterministic and fast (<1 s).
 
 ---
 

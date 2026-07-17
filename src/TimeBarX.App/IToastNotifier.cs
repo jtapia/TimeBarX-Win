@@ -9,12 +9,16 @@ namespace TimeBarX.App;
 /// <param name="Title">Toast heading, e.g. "Timer complete".</param>
 /// <param name="Body">Secondary line, e.g. the timer's label, or empty.</param>
 /// <param name="RestartUri">timebarx:// URI that restarts the same duration/label.</param>
-/// <param name="ExtendUri">timebarx:// URI that starts a fresh +5 minute timer.</param>
+/// <param name="ExtendUri">
+/// timebarx:// URI that starts a fresh +5 minute timer, or <c>null</c> to omit
+/// the "+5 min" button entirely — used during an active Pomodoro cycle, where
+/// starting a bare 5-minute timer would silently abandon the phase chain.
+/// </param>
 public readonly record struct ToastCompletionInfo(
     string Title,
     string Body,
     string RestartUri,
-    string ExtendUri);
+    string? ExtendUri);
 
 /// <summary>
 /// Raises native Windows completion toasts. Additive to the existing sound and
