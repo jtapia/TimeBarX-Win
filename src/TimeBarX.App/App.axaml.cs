@@ -142,9 +142,12 @@ public partial class App : Application
         // URI automation is a Pro feature: non-Pro users see all timebarx://
         // commands silently no-op. Silent (no toast/popup) is deliberate —
         // automation runs unattended and shouldn't surface upgrade nags.
-        // Exception: commands originating from our own completion toast (src=toast)
-        // are the user clicking our UI, not automation, so they're never gated.
-        var fromToast = uri.Contains(ToastSource, StringComparison.OrdinalIgnoreCase);
+        // Exception: commands originating from our own completion toast carry
+        // a per-launch nonce (see ToastCommandUri) that only this process
+        // knows, so an external launcher can't forge the bypass by copying a
+        // static tag. The nonce dies with the process — a URI captured from a
+        // previous run stops working once the app restarts.
+        var fromToast = uri.Contains(ToastTrustQuery, StringComparison.Ordinal);
         if (!fromToast && !Controller.Entitlements.IsPro) return;
         switch (cmd.Kind)
         {
@@ -202,11 +205,19 @@ public partial class App : Application
             ExtendUri: extend));
     }
 
-    // Marks a toast-originated command so HandleUri can bypass the Pro gate.
-    private const string ToastSource = "src=toast";
+    // Per-launch nonce that marks a URI as originating from our own completion
+    // toast. Regenerated on every process start so a URI captured from a prior
+    // run (e.g. an Action Center entry that outlived the app) can't be replayed
+    // to bypass the Pro gate — and can't be forged by an external launcher
+    // that doesn't know this process's value.
+    private readonly string _toastNonce = Guid.NewGuid().ToString("N");
 
-    private static string ToastCommandUri(string action, string query)
-        => $"{TimeBarX.Core.UriCommand.Scheme}://{action}?{query}&{ToastSource}";
+    // The exact query fragment HandleUri looks for. Built once so both the URI
+    // producer (ToastCommandUri) and consumer (HandleUri) can't drift.
+    private string ToastTrustQuery => $"src={_toastNonce}";
+
+    private string ToastCommandUri(string action, string query)
+        => $"{TimeBarX.Core.UriCommand.Scheme}://{action}?{query}&{ToastTrustQuery}";
 
     private void OnHotkeyPressed()
     {
