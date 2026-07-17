@@ -100,11 +100,16 @@ public partial class App : Application
             // AUMID and self-disables if the notification platform is unavailable.
             _toasts = new WindowsToastNotifier();
 
-            // Taskbar/Start-icon jump list: one-click "Start 25 min", Pause,
-            // Resume, Stop, Start Pomodoro. Published once at startup — the
+            // Taskbar/Start-icon jump list: one-click "Start 25 min", "Start
+            // 50 min", Pause, Resume, Stop. Published once at startup — the
             // list is static and doesn't need refreshing. Failure to publish
             // is silent (see WindowsJumpList): a missing jump list is a soft
             // feature, never worth blocking the app on.
+            //
+            // Order matters: WindowsToastNotifier (above) sets the process
+            // AUMID for the direct build, and ICustomDestinationList attaches
+            // the list to that ambient AUMID — so the notifier must be
+            // constructed first.
             _jumpList = new WindowsJumpList();
             _jumpList.Publish(JumpListEntries.Default());
 #endif
