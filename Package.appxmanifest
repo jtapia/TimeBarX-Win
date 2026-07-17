@@ -18,7 +18,7 @@
   <Identity
       Name="EduardoTapia.TimeBarX"
       Publisher="CN=B6CC8531-4303-4362-AE49-B4EF696B4040"
-      Version="1.0.1.0" />
+      Version="1.0.7.0" />
 
   <Properties>
     <DisplayName>TimeBarX</DisplayName>
@@ -27,9 +27,11 @@
   </Properties>
 
   <Dependencies>
-    <!-- StoreContext APIs we use have been GA since 1809; older overloads work
-         back to 1607 but we already declare 1809 as the .NET TFM minimum. -->
-    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.17763.0" MaxVersionTested="10.0.22621.0" />
+    <!-- Floor must match the build's TargetFramework / SupportedOSPlatformVersion
+         (net10.0-windows10.0.19041.0 = Windows 10 2004). Declaring an older floor
+         would let the Store offer the package to 1809/1903 machines where any
+         19041-only WinRT surface can throw at runtime. -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.19041.0" MaxVersionTested="10.0.22621.0" />
   </Dependencies>
 
   <Resources>

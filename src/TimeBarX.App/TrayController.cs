@@ -17,12 +17,31 @@ public sealed class TrayController : INotifyPropertyChanged
     private readonly TimerEngine _engine = new();
     private readonly ITimerStore _store;
     private readonly ISettingsStore _settingsStore;
+    private readonly IIdleProbe _idleProbe;
+    private readonly SessionHistoryStore _history;
     private readonly DispatcherTimer _ticker;
 
     private string _currentPreset = DefaultPreset;
     private string? _currentLabel;
     private TimerState _lastState = TimerState.Idle;
     private AppSettings _settings;
+
+    // Set at Start/StartCustom, cleared at Stop; used to stamp the session
+    // record when the timer completes. Null when there's no active timer.
+    private DateTimeOffset? _startedAtUtc;
+
+    // Pomodoro cycle state. When _pomodoroPhase is non-null, the currently
+    // running (or last-completed) timer is one Pomodoro phase; on completion
+    // with AutoAdvance the next phase kicks off automatically. Reset by Stop
+    // or by starting a non-Pomodoro timer.
+    private PomodoroPhase? _pomodoroPhase;
+    private int _pomodoroWorkCount;
+
+    // If the current timer was started from a CustomPreset with per-preset
+    // overrides, that preset is kept here so completion effects (sound,
+    // alert message) can consult it. Cleared by Start / StartCustom without
+    // a preset / Stop / Pomodoro transitions.
+    private CustomPreset? _activePreset;
 
     // Last values pushed to the UI, so the 30 FPS refresh only raises
     // PropertyChanged when something actually changed (see RefreshFromEngine).
@@ -76,19 +95,26 @@ public sealed class TrayController : INotifyPropertyChanged
     public IEntitlements Entitlements { get; }
 
     public TrayController()
-        : this(new JsonTimerStore(), new JsonSettingsStore(), new FreeEntitlements())
+        : this(new JsonTimerStore(), new JsonSettingsStore(), new FreeEntitlements(), new NullIdleProbe())
     {
     }
 
     public TrayController(ITimerStore store, ISettingsStore settingsStore)
-        : this(store, settingsStore, new FreeEntitlements())
+        : this(store, settingsStore, new FreeEntitlements(), new NullIdleProbe())
     {
     }
 
     public TrayController(ITimerStore store, ISettingsStore settingsStore, IEntitlements entitlements)
+        : this(store, settingsStore, entitlements, new NullIdleProbe())
+    {
+    }
+
+    public TrayController(ITimerStore store, ISettingsStore settingsStore, IEntitlements entitlements, IIdleProbe idleProbe)
     {
         _store = store;
         _settingsStore = settingsStore;
+        _idleProbe = idleProbe;
+        _history = new SessionHistoryStore();
         _settings = _settingsStore.Load();
         Entitlements = entitlements;
         // Entitlement transitions (purchase / refund / restore) change what
@@ -120,6 +146,15 @@ public sealed class TrayController : INotifyPropertyChanged
     public string StatusLabel { get; private set; } = "No timer running";
     public double Progress => _engine.Progress;
     public bool IsBarVisible => _engine.State is TimerState.Running or TimerState.Paused or TimerState.Completed;
+
+    /// <summary>
+    /// Whether the bar is actively counting (Running or Paused). Distinct from
+    /// <see cref="IsBarVisible"/>, which stays true through Completed so the
+    /// overlay can play its fade-out. The overlay policy gates its polling on
+    /// this so it stops after completion instead of running the foreground/
+    /// Z-order checks forever for an invisible, faded-out bar.
+    /// </summary>
+    public bool IsBarActive => _engine.State is TimerState.Running or TimerState.Paused;
     public bool CanStart => _engine.State is TimerState.Idle or TimerState.Completed;
     public bool CanPause => _engine.State == TimerState.Running;
     public bool CanResume => _engine.State == TimerState.Paused;
@@ -150,6 +185,12 @@ public sealed class TrayController : INotifyPropertyChanged
                 _engine.StartAt(snapshot.EndTime.Value, snapshot.Total);
                 if (_engine.State == TimerState.Running)
                 {
+                    // Reconstruct a plausible start so the eventual completion
+                    // gets a StartedAt in the history log. Not perfectly
+                    // accurate — Pause segments across restart aren't tracked —
+                    // but Started = End − Total is close enough for a history
+                    // entry.
+                    _startedAtUtc = snapshot.EndTime.Value - snapshot.Total;
                     _ticker.Start();
                 }
                 else
@@ -165,6 +206,7 @@ public sealed class TrayController : INotifyPropertyChanged
 
             case TimerState.Paused:
                 _engine.RestorePaused(snapshot.ElapsedAtPause, snapshot.Total);
+                _startedAtUtc = DateTimeOffset.UtcNow - snapshot.ElapsedAtPause;
                 break;
 
             default:
@@ -191,6 +233,10 @@ public sealed class TrayController : INotifyPropertyChanged
         var duration = _settings.DefaultDuration > TimeSpan.Zero ? _settings.DefaultDuration : DefaultDuration;
         _currentPreset = FormatPreset(duration);
         _currentLabel = null;
+        _startedAtUtc = DateTimeOffset.UtcNow;
+        _activePreset = null;
+        _pomodoroPhase = null;
+        _pomodoroWorkCount = 0;
         _engine.Start(duration);
         _ticker.Start();
         Persist();
@@ -214,16 +260,101 @@ public sealed class TrayController : INotifyPropertyChanged
         _engine.Stop();
         _currentPreset = string.IsNullOrEmpty(preset) ? DefaultPreset : preset;
         _currentLabel = string.IsNullOrWhiteSpace(label) ? null : label.Trim();
+        _startedAtUtc = DateTimeOffset.UtcNow;
+        _activePreset = null;
+        // Any manually-started custom timer breaks the Pomodoro cycle: the user
+        // is intentionally running something else, so the auto-advance chain
+        // shouldn't come back to bite them later.
+        _pomodoroPhase = null;
+        _pomodoroWorkCount = 0;
         _engine.Start(duration);
         _ticker.Start();
         Persist();
         RefreshFromEngine();
     }
 
+    /// <summary>
+    /// Start a timer from a user-defined <see cref="CustomPreset"/>, honoring
+    /// any per-preset overrides (label, completion sound, alert message).
+    /// </summary>
+    public void StartFromPreset(CustomPreset preset)
+    {
+        if (!preset.IsValid) return;
+        StartCustom(preset.Duration, FormatPreset(preset.Duration), preset.Label);
+        _activePreset = preset;
+    }
+
+    /// <summary>Completion sound for the currently-active timer, honoring per-preset overrides.</summary>
+    public CompletionSoundChoice EffectiveCompletionSoundForCurrent()
+        => _activePreset?.CompletionSound ?? _settings.EffectiveCompletionSound;
+
+    /// <summary>Alert message for the currently-active preset, if any.</summary>
+    public string? ActiveAlertMessage => _activePreset?.AlertMessage;
+
+    /// <summary>
+    /// Preset string of the current/just-finished timer (e.g. "25m", "1h 30m").
+    /// Valid to read from the Completed handler — cleared only on Stop / a new
+    /// start — so a completion toast can offer a "Restart" of the same duration.
+    ///
+    /// This value MUST remain parseable by <see cref="DurationParser"/>: the
+    /// completion toast's Restart button feeds it back through
+    /// <c>timebarx://start?duration=</c>. If <see cref="FormatPreset"/> ever
+    /// emits a token that <see cref="DurationParser"/> can't round-trip (e.g.
+    /// changing "25m" to "25 min"), the Restart button silently starts the
+    /// default 25-minute timer instead of the one that just finished.
+    /// </summary>
+    public string CompletedPreset => _currentPreset;
+
+    /// <summary>Label of the current/just-finished timer, or null.</summary>
+    public string? CompletedLabel => _currentLabel;
+
+    /// <summary>
+    /// Starts (or restarts) the Pomodoro cycle: the current phase is set to
+    /// Work and a timer of the configured Work length kicks off. On completion,
+    /// with AutoAdvance enabled, subsequent phases follow automatically.
+    /// </summary>
+    public void StartPomodoro()
+    {
+        var pomo = _settings.Pomodoro ?? PomodoroSettings.Default;
+        _engine.Stop();
+        _pomodoroWorkCount = 0;
+        StartPomodoroPhase(pomo, PomodoroPhase.Work);
+    }
+
+    private void StartPomodoroPhase(PomodoroSettings pomo, PomodoroPhase phase)
+    {
+        _pomodoroPhase = phase;
+        // A Pomodoro phase is not a custom preset: clear any preset left over
+        // from an earlier StartFromPreset (it isn't cleared on completion, only
+        // on Stop) so phase completions don't play that preset's override sound
+        // or report its stale alert message.
+        _activePreset = null;
+        var duration = pomo.DurationFor(phase);
+        _currentPreset = FormatPreset(duration);
+        _currentLabel = phase switch
+        {
+            PomodoroPhase.Work => $"Pomodoro · Work",
+            PomodoroPhase.ShortBreak => $"Pomodoro · Break",
+            PomodoroPhase.LongBreak => $"Pomodoro · Long break",
+            _ => "Pomodoro",
+        };
+        _startedAtUtc = DateTimeOffset.UtcNow;
+        _engine.Start(duration);
+        _ticker.Start();
+        Persist();
+        RefreshFromEngine();
+    }
+
+    /// <summary>Current Pomodoro phase, or null when no cycle is active.</summary>
+    public PomodoroPhase? CurrentPomodoroPhase => _pomodoroPhase;
+
     public void Pause()
     {
         if (!CanPause) return;
         _engine.Pause();
+        // Nothing advances while paused, so stop the 30 FPS refresh loop rather
+        // than burning CPU/battery on unchanging frames. Resume() restarts it.
+        _ticker.Stop();
         Persist();
         RefreshFromEngine();
     }
@@ -243,6 +374,10 @@ public sealed class TrayController : INotifyPropertyChanged
         _ticker.Stop();
         _store.Clear();
         _currentLabel = null;
+        _startedAtUtc = null;
+        _activePreset = null;
+        _pomodoroPhase = null;
+        _pomodoroWorkCount = 0;
         RefreshFromEngine();
     }
 
@@ -269,6 +404,22 @@ public sealed class TrayController : INotifyPropertyChanged
 
     private void RefreshFromEngine()
     {
+        // Auto-pause on idle: check before the engine tick so the pause lands on
+        // this frame rather than one frame late. Only fires while Running so a
+        // manually-paused user doesn't get "auto-paused" over their own pause.
+        if (_engine.State == TimerState.Running && _settings.AutoPauseOnIdleMinutes is { } minutes && minutes > 0)
+        {
+            var threshold = TimeSpan.FromMinutes(minutes);
+            if (_idleProbe.GetIdleTime() >= threshold)
+            {
+                _engine.Pause();
+                // Stop the refresh loop while auto-paused — this is exactly when
+                // the machine should be quiescent. Resume() restarts it.
+                _ticker.Stop();
+                Persist();
+            }
+        }
+
         _engine.Tick();
 
         var current = _engine.State;
@@ -315,6 +466,7 @@ public sealed class TrayController : INotifyPropertyChanged
         if (stateChanged)
         {
             Raise(nameof(IsBarVisible));
+            Raise(nameof(IsBarActive));
             Raise(nameof(CanStart));
             Raise(nameof(CanPause));
             Raise(nameof(CanResume));
@@ -323,9 +475,64 @@ public sealed class TrayController : INotifyPropertyChanged
 
         if (justCompleted)
         {
+            RecordCompletion();
+            var advanced = TryAdvancePomodoro();
             Completed?.Invoke();
+            // If the cycle auto-advanced into the next phase, the completion
+            // sound/animation still fires for the phase that just ended.
+            _ = advanced;
         }
     }
+
+    /// <summary>
+    /// If a Pomodoro cycle is active and AutoAdvance is on, transition to the
+    /// next phase and kick off a new timer. Returns true when an advance
+    /// happened, so the caller can suppress overlay effects that shouldn't
+    /// run twice (currently none — the completion event still fires once for
+    /// the phase that ended).
+    /// </summary>
+    private bool TryAdvancePomodoro()
+    {
+        if (_pomodoroPhase is not { } phase) return false;
+        var pomo = _settings.Pomodoro ?? PomodoroSettings.Default;
+        if (!pomo.Enabled || !pomo.AutoAdvance) return false;
+
+        if (phase == PomodoroPhase.Work) _pomodoroWorkCount++;
+        var next = pomo.NextPhase(phase, _pomodoroWorkCount);
+        // Delay the transition until the completion flash/pulse has played, so the
+        // user actually sees the "phase ended" cue. Starting the next phase
+        // immediately (next dispatcher iteration) raises IsBarVisible, which makes
+        // the overlay cancel the just-started animation ~1 frame in. The delay
+        // covers only the attention portion; the trailing fade is superseded by
+        // the next timer, which is the desired effect.
+        var advance = new DispatcherTimer { Interval = CompletionAnimator.AttentionDuration };
+        advance.Tick += (_, _) =>
+        {
+            advance.Stop();
+            // A Stop or manual Start during the delay cancels the advance.
+            if (_pomodoroPhase != phase) return;
+            StartPomodoroPhase(pomo, next);
+        };
+        advance.Start();
+        return true;
+    }
+
+    private void RecordCompletion()
+    {
+        if (!_settings.RecordSessionHistory) return;
+        if (_startedAtUtc is not { } startedAt) return;
+        var record = new SessionRecord(
+            StartedAt: startedAt,
+            CompletedAt: DateTimeOffset.UtcNow,
+            Duration: _engine.Total,
+            Preset: _currentPreset,
+            Label: _currentLabel);
+        _history.Append(record);
+        _startedAtUtc = null;
+    }
+
+    /// <summary>Absolute path to the history log — surfaced in Settings so users can inspect it.</summary>
+    public string HistoryPath => _history.Path;
 
     private string LabelSuffix => _currentLabel is null ? string.Empty : $" · {_currentLabel}";
 

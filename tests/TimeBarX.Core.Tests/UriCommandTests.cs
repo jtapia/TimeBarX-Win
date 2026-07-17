@@ -45,6 +45,14 @@ public class UriCommandTests
         Assert.Equal(kind, cmd.Kind);
     }
 
+    [Fact]
+    public void Decodes_plus_as_space_in_query()
+    {
+        Assert.True(UriCommand.TryParse("timebarx://start?duration=25+min&label=review+PR", out var cmd));
+        Assert.Equal(TimeSpan.FromMinutes(25), cmd.Duration);
+        Assert.Equal("review PR", cmd.Label);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("notauri")]
@@ -52,8 +60,28 @@ public class UriCommandTests
     [InlineData("timebarx://unknown")]
     [InlineData("timebarx://start")] // no duration
     [InlineData("timebarx://start?duration=abc")]
+    [InlineData("timebarx://start?duration=99999999999h")] // must not throw
     public void Rejects_invalid(string input)
     {
         Assert.False(UriCommand.TryParse(input, out _));
+    }
+
+    [Theory]
+    [InlineData("timebarx:/start?duration=25m")]
+    [InlineData("timebarx:/pause")]
+    [InlineData("timebarx:/resume")]
+    [InlineData("timebarx:/stop")]
+    public void Accepts_path_form(string input)
+    {
+        Assert.True(UriCommand.TryParse(input, out _));
+    }
+
+    [Fact]
+    public void Path_form_start_carries_duration_and_label()
+    {
+        Assert.True(UriCommand.TryParse("timebarx:/start?duration=25m&label=review", out var cmd));
+        Assert.Equal(UriCommandKind.Start, cmd.Kind);
+        Assert.Equal(TimeSpan.FromMinutes(25), cmd.Duration);
+        Assert.Equal("review", cmd.Label);
     }
 }

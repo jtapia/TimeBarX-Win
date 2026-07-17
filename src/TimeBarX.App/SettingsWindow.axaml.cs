@@ -12,12 +12,23 @@ public partial class SettingsWindow : Window
     private bool _syncing;
 
     private CheckBox? _soundCheck;
+    private CheckBox? _toastCheck;
     private CheckBox? _gradientCheck;
     private CheckBox? _alwaysAboveCheck;
+    private CheckBox? _autoPauseCheck;
+    private NumericUpDown? _autoPauseMinutes;
+    private CheckBox? _recordHistoryCheck;
+    private CheckBox? _pomodoroEnabledCheck;
+    private CheckBox? _pomodoroAutoAdvanceCheck;
+    private NumericUpDown? _pomodoroWork;
+    private NumericUpDown? _pomodoroShort;
+    private NumericUpDown? _pomodoroLong;
+    private NumericUpDown? _pomodoroLongEvery;
     private Control? _alwaysAboveWarning;
     private Slider? _opacitySlider;
     private TextBlock? _versionText;
     private TextBlock? _updateText;
+    private Button? _updateDownloadButton;
 
     // "Pro" chips on locked feature groups — visible only when !IsPro.
     private Control? _colorProChip;
@@ -37,12 +48,23 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
         _soundCheck = this.FindControl<CheckBox>("SoundCheck");
+        _toastCheck = this.FindControl<CheckBox>("ToastCheck");
         _gradientCheck = this.FindControl<CheckBox>("GradientCheck");
         _alwaysAboveCheck = this.FindControl<CheckBox>("AlwaysAboveCheck");
+        _autoPauseCheck = this.FindControl<CheckBox>("AutoPauseCheck");
+        _autoPauseMinutes = this.FindControl<NumericUpDown>("AutoPauseMinutes");
+        _recordHistoryCheck = this.FindControl<CheckBox>("RecordHistoryCheck");
+        _pomodoroEnabledCheck = this.FindControl<CheckBox>("PomodoroEnabledCheck");
+        _pomodoroAutoAdvanceCheck = this.FindControl<CheckBox>("PomodoroAutoAdvanceCheck");
+        _pomodoroWork = this.FindControl<NumericUpDown>("PomodoroWork");
+        _pomodoroShort = this.FindControl<NumericUpDown>("PomodoroShort");
+        _pomodoroLong = this.FindControl<NumericUpDown>("PomodoroLong");
+        _pomodoroLongEvery = this.FindControl<NumericUpDown>("PomodoroLongEvery");
         _alwaysAboveWarning = this.FindControl<Control>("AlwaysAboveWarning");
         _opacitySlider = this.FindControl<Slider>("OpacitySlider");
         _versionText = this.FindControl<TextBlock>("VersionText");
         _updateText = this.FindControl<TextBlock>("UpdateText");
+        _updateDownloadButton = this.FindControl<Button>("UpdateDownloadButton");
         _colorProChip = this.FindControl<Control>("ColorProChip");
         _alwaysAboveProChip = this.FindControl<Control>("AlwaysAboveProChip");
         _gradientProChip = this.FindControl<Control>("GradientProChip");
@@ -81,6 +103,15 @@ public partial class SettingsWindow : Window
             _versionText.Text = $"Version {version}";
         }
 
+        // Warn if the global quick-input hotkey couldn't be registered because
+        // another app already owns Ctrl+Shift+T — otherwise it silently does
+        // nothing and the user has no way to know why.
+        var conflictWarning = this.FindControl<TextBlock>("HotkeyConflictWarning");
+        if (conflictWarning is not null && Avalonia.Application.Current is App app)
+        {
+            conflictWarning.IsVisible = app.HotkeyConflict;
+        }
+
         DataContextChanged += OnDataContextChanged;
     }
 
@@ -88,12 +119,7 @@ public partial class SettingsWindow : Window
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
-        if (_controller is not null)
-        {
-            _controller.SettingsChanged -= SyncFromSettings;
-            _controller.PropertyChanged -= OnControllerPropertyChanged;
-            _controller.Entitlements.Changed -= SyncProChips;
-        }
+        UnsubscribeController();
         _controller = DataContext as TrayController;
         if (_controller is not null)
         {
@@ -110,10 +136,38 @@ public partial class SettingsWindow : Window
         SyncUpdate();
     }
 
+    protected override void OnClosed(EventArgs e)
+    {
+        // Flush a pending debounced opacity write before tearing down, so closing
+        // the window right after a drag doesn't lose the final value.
+        if (_opacityDebounce is { IsEnabled: true })
+        {
+            _opacityDebounce.Stop();
+            Update(x => x.WithOpacity(_pendingOpacity));
+        }
+
+        // The controller and entitlements outlive this window, so unhook on close;
+        // otherwise every opened-then-closed Settings window stays rooted and keeps
+        // running SyncFromSettings/SyncProChips on each settings or entitlement change.
+        UnsubscribeController();
+        _controller = null;
+        base.OnClosed(e);
+    }
+
+    // Single source of truth for detaching from the controller — used both when
+    // the DataContext swaps and on close, so adding a new subscription only has
+    // to be mirrored in one place.
+    private void UnsubscribeController()
+    {
+        if (_controller is null) return;
+        _controller.SettingsChanged -= SyncFromSettings;
+        _controller.PropertyChanged -= OnControllerPropertyChanged;
+        _controller.Entitlements.Changed -= SyncProChips;
+    }
+
     private void SyncProChips()
     {
-        var isPro = _controller?.Entitlements.IsPro ?? false;
-        var locked = !isPro;
+        var locked = !(_controller?.Entitlements.IsPro ?? false);
         if (_colorProChip is not null) _colorProChip.IsVisible = locked;
         if (_alwaysAboveProChip is not null) _alwaysAboveProChip.IsVisible = locked;
         if (_gradientProChip is not null) _gradientProChip.IsVisible = locked;
@@ -167,10 +221,35 @@ public partial class SettingsWindow : Window
         if (update is null)
         {
             _updateText.IsVisible = false;
+            if (_updateDownloadButton is not null) _updateDownloadButton.IsVisible = false;
             return;
         }
         _updateText.Text = $"Update available: {update.LatestVersion}";
         _updateText.IsVisible = true;
+        if (_updateDownloadButton is not null)
+            _updateDownloadButton.IsVisible = !string.IsNullOrWhiteSpace(update.DownloadUrl);
+    }
+
+    private void OnDownloadUpdateClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var url = _controller?.AvailableUpdate?.DownloadUrl;
+        if (string.IsNullOrWhiteSpace(url)) return;
+        // Only launch well-formed absolute http(s) URLs; never hand an arbitrary
+        // string to the shell.
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return;
+        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) return;
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = uri.AbsoluteUri,
+                UseShellExecute = true,
+            });
+        }
+        catch
+        {
+            // best-effort; nothing actionable if the shell can't open a browser.
+        }
     }
 
     private void SyncFromSettings()
@@ -180,11 +259,29 @@ public partial class SettingsWindow : Window
         try
         {
             var s = _controller.Settings;
-            if (_soundCheck is not null) _soundCheck.IsChecked = s.PlayCompletionSound;
+            if (_soundCheck is not null) _soundCheck.IsChecked = s.EffectiveCompletionSound != CompletionSoundChoice.Off;
+            if (_toastCheck is not null) _toastCheck.IsChecked = s.ShowCompletionToast;
             if (_gradientCheck is not null) _gradientCheck.IsChecked = s.GradientMode;
             if (_alwaysAboveCheck is not null) _alwaysAboveCheck.IsChecked = s.AlwaysAboveEverything;
             if (_alwaysAboveWarning is not null) _alwaysAboveWarning.IsVisible = s.AlwaysAboveEverything;
             if (_opacitySlider is not null) _opacitySlider.Value = s.Opacity;
+            if (_autoPauseCheck is not null)
+                _autoPauseCheck.IsChecked = s.AutoPauseOnIdleMinutes is > 0;
+            if (_autoPauseMinutes is not null)
+            {
+                _autoPauseMinutes.Value = s.AutoPauseOnIdleMinutes ?? 5;
+                _autoPauseMinutes.IsEnabled = s.AutoPauseOnIdleMinutes is > 0;
+            }
+            if (_recordHistoryCheck is not null)
+                _recordHistoryCheck.IsChecked = s.RecordSessionHistory;
+
+            var pomo = s.Pomodoro ?? PomodoroSettings.Default;
+            if (_pomodoroEnabledCheck is not null) _pomodoroEnabledCheck.IsChecked = pomo.Enabled;
+            if (_pomodoroAutoAdvanceCheck is not null) _pomodoroAutoAdvanceCheck.IsChecked = pomo.AutoAdvance;
+            if (_pomodoroWork is not null) _pomodoroWork.Value = pomo.WorkMinutes;
+            if (_pomodoroShort is not null) _pomodoroShort.Value = pomo.ShortBreakMinutes;
+            if (_pomodoroLong is not null) _pomodoroLong.Value = pomo.LongBreakMinutes;
+            if (_pomodoroLongEvery is not null) _pomodoroLongEvery.Value = pomo.LongBreakEvery;
 
             SyncRadioGroup(_defaultDurationRadios, s.DefaultDuration);
             SyncRadioGroup(_colorRadios, s.Color);
@@ -218,8 +315,37 @@ public partial class SettingsWindow : Window
     private void OnDefault25Clicked(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { DefaultDuration = TimeSpan.FromMinutes(25) });
     private void OnDefault50Clicked(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { DefaultDuration = TimeSpan.FromMinutes(50) });
     private void OnDefault90Clicked(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Update(x => x with { DefaultDuration = TimeSpan.FromMinutes(90) });
+    // Remembers the sound choice while the checkbox is unchecked, so re-enabling
+    // restores the user's actual pick (set via preset/config) instead of forcing
+    // Asterisk and silently discarding e.g. Exclamation.
+    private CompletionSoundChoice _lastSoundChoice = CompletionSoundChoice.Asterisk;
+
     private void OnSoundCheckClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
-        => Update(x => x with { PlayCompletionSound = _soundCheck?.IsChecked == true });
+    {
+        var on = _soundCheck?.IsChecked == true;
+        // Keep the legacy bool and the new enum in sync so both surfaces —
+        // upgrading users reading only PlayCompletionSound and new callers
+        // using EffectiveCompletionSound — see the same choice.
+        Update(x =>
+        {
+            if (on)
+            {
+                // Prefer whatever real choice is already stored (a preset/config
+                // pick); otherwise fall back to the last remembered choice.
+                var restore = x.CompletionSound is { } cs && cs != CompletionSoundChoice.Off
+                    ? cs
+                    : _lastSoundChoice;
+                if (restore == CompletionSoundChoice.Off) restore = CompletionSoundChoice.Asterisk;
+                return x with { PlayCompletionSound = true, CompletionSound = restore };
+            }
+
+            // Turning it off: remember the current real choice so we can bring it
+            // back on re-enable.
+            if (x.CompletionSound is { } prev && prev != CompletionSoundChoice.Off)
+                _lastSoundChoice = prev;
+            return x with { PlayCompletionSound = false, CompletionSound = CompletionSoundChoice.Off };
+        });
+    }
 
     private void OnAlwaysAboveClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
     {
@@ -249,15 +375,136 @@ public partial class SettingsWindow : Window
     private void OnPositionBottom(object? s, Avalonia.Interactivity.RoutedEventArgs e)
         => Update(x => x with { Position = BarPosition.Bottom });
 
+    // Debounce continuous opacity drags: each tick otherwise writes settings.json
+    // and fans out SettingsChanged (tray-menu rebuild + overlay relayout on every
+    // display). Coalesce to one write shortly after the user stops moving.
+    private Avalonia.Threading.DispatcherTimer? _opacityDebounce;
+    private double _pendingOpacity;
+
     private void OnOpacityChanged(object? s, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
     {
         if (_syncing) return;
-        Update(x => x.WithOpacity(e.NewValue));
+        _pendingOpacity = e.NewValue;
+        _opacityDebounce ??= CreateOpacityDebounce();
+        _opacityDebounce.Stop();
+        _opacityDebounce.Start();
+    }
+
+    private Avalonia.Threading.DispatcherTimer CreateOpacityDebounce()
+    {
+        var timer = new Avalonia.Threading.DispatcherTimer
+        {
+            Interval = TimeSpan.FromMilliseconds(150),
+        };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            Update(x => x.WithOpacity(_pendingOpacity));
+        };
+        return timer;
     }
 
     private void OnGradientClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (!RequireProOrPrompt()) return;
         Update(x => x with { GradientMode = _gradientCheck?.IsChecked == true });
+    }
+
+    private void OnAutoPauseClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var on = _autoPauseCheck?.IsChecked == true;
+        var minutes = (int)(_autoPauseMinutes?.Value ?? 5);
+        if (minutes < 1) minutes = 5;
+        Update(x => x with { AutoPauseOnIdleMinutes = on ? minutes : null });
+        if (_autoPauseMinutes is not null) _autoPauseMinutes.IsEnabled = on;
+    }
+
+    private void OnAutoPauseMinutesChanged(object? s, Avalonia.Controls.NumericUpDownValueChangedEventArgs e)
+    {
+        if (_syncing) return;
+        // Only propagate while auto-pause is enabled; typing a number without
+        // enabling the checkbox shouldn't silently turn it on.
+        if (_autoPauseCheck?.IsChecked != true) return;
+        var minutes = (int)(e.NewValue ?? 5);
+        if (minutes < 1) minutes = 1;
+        Update(x => x with { AutoPauseOnIdleMinutes = minutes });
+    }
+
+    private void OnRecordHistoryClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+        => Update(x => x with { RecordSessionHistory = _recordHistoryCheck?.IsChecked == true });
+
+    private void OnToastCheckClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+        => Update(x => x with { ShowCompletionToast = _toastCheck?.IsChecked == true });
+
+    private PomodoroSettings CurrentPomodoro()
+        => _controller?.Settings.Pomodoro ?? PomodoroSettings.Default;
+
+    private void OnPomodoroEnabledClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+        => Update(x => x with { Pomodoro = CurrentPomodoro() with { Enabled = _pomodoroEnabledCheck?.IsChecked == true } });
+
+    private void OnPomodoroAutoAdvanceClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+        => Update(x => x with { Pomodoro = CurrentPomodoro() with { AutoAdvance = _pomodoroAutoAdvanceCheck?.IsChecked == true } });
+
+    private void OnPomodoroWorkChanged(object? s, Avalonia.Controls.NumericUpDownValueChangedEventArgs e)
+    {
+        if (_syncing) return;
+        var v = (int)(e.NewValue ?? 25);
+        Update(x => x with { Pomodoro = CurrentPomodoro() with { WorkMinutes = v } });
+    }
+
+    private void OnPomodoroShortChanged(object? s, Avalonia.Controls.NumericUpDownValueChangedEventArgs e)
+    {
+        if (_syncing) return;
+        var v = (int)(e.NewValue ?? 5);
+        Update(x => x with { Pomodoro = CurrentPomodoro() with { ShortBreakMinutes = v } });
+    }
+
+    private void OnPomodoroLongChanged(object? s, Avalonia.Controls.NumericUpDownValueChangedEventArgs e)
+    {
+        if (_syncing) return;
+        var v = (int)(e.NewValue ?? 15);
+        Update(x => x with { Pomodoro = CurrentPomodoro() with { LongBreakMinutes = v } });
+    }
+
+    private void OnPomodoroLongEveryChanged(object? s, Avalonia.Controls.NumericUpDownValueChangedEventArgs e)
+    {
+        if (_syncing) return;
+        var v = (int)(e.NewValue ?? 4);
+        Update(x => x with { Pomodoro = CurrentPomodoro() with { LongBreakEvery = v } });
+    }
+
+    private void OnShowHistoryFileClicked(object? s, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var path = _controller?.HistoryPath;
+        if (string.IsNullOrWhiteSpace(path)) return;
+        try
+        {
+            // Reveal in Explorer: /select, opens the containing folder with the
+            // file highlighted, which works whether or not it exists yet (falls
+            // back to opening the folder).
+            var dir = System.IO.Path.GetDirectoryName(path);
+            if (System.IO.File.Exists(path))
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = "explorer.exe",
+                    Arguments = $"/select,\"{path}\"",
+                    UseShellExecute = true,
+                });
+            }
+            else if (!string.IsNullOrEmpty(dir))
+            {
+                System.IO.Directory.CreateDirectory(dir);
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName = dir,
+                    UseShellExecute = true,
+                });
+            }
+        }
+        catch
+        {
+            // best-effort; the settings window shouldn't die because Explorer is missing.
+        }
     }
 }

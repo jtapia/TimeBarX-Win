@@ -22,6 +22,16 @@ internal sealed class CompletionAnimator
     private const double PulseFloor = 0.4;
     private static readonly TimeSpan FadeDuration = TimeSpan.FromMilliseconds(2000);
 
+    /// <summary>
+    /// Duration of the attention-grabbing part of the sequence — the white flash
+    /// plus the opacity pulses, before the long fade-out begins. A Pomodoro
+    /// auto-advance waits this long so the "phase ended" cue actually plays
+    /// before the next phase replaces the bar (the fade is then superseded by the
+    /// new timer, which is fine).
+    /// </summary>
+    public static TimeSpan AttentionDuration { get; } =
+        FlashDuration + TimeSpan.FromTicks(PulseHalf.Ticks * 2 * PulseCount);
+
     private readonly Window _window;
     private readonly Rectangle _bar;
     private readonly IBrush _restingBrush;

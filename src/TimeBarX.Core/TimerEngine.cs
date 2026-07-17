@@ -5,6 +5,7 @@ public sealed class TimerEngine
     private readonly IClock _clock;
 
     private DateTimeOffset? _startedAt;
+    private TimeSpan? _monotonicStartedAt;
     private TimeSpan _total;
     private TimeSpan _accumulatedElapsed;
 
@@ -26,17 +27,32 @@ public sealed class TimerEngine
                 TimerState.Idle => TimeSpan.Zero,
                 TimerState.Paused => _accumulatedElapsed,
                 TimerState.Completed => _total,
-                TimerState.Running => _accumulatedElapsed + (_clock.UtcNow - _startedAt!.Value),
+                TimerState.Running => _accumulatedElapsed + RunningDelta(),
                 _ => TimeSpan.Zero,
             };
 
             if (raw < TimeSpan.Zero) return TimeSpan.Zero;
-            if (raw >= _total)
-            {
-                return _total;
-            }
+            if (raw >= _total) return _total;
             return raw;
         }
+    }
+
+    /// <summary>
+    /// Elapsed time within the current running segment. Uses the larger of the monotonic
+    /// delta and the wall-clock delta: the monotonic clock keeps the bar from rewinding when
+    /// the system clock is moved backwards (NTP/manual), while the wall clock still counts
+    /// time the machine spent asleep (when the monotonic clock is frozen). Never negative.
+    /// </summary>
+    private TimeSpan RunningDelta()
+    {
+        var wall = _clock.UtcNow - _startedAt!.Value;
+        if (wall < TimeSpan.Zero) wall = TimeSpan.Zero;
+
+        if (_monotonicStartedAt is not TimeSpan monoStart) return wall;
+        var mono = _clock.MonotonicNow - monoStart;
+        if (mono < TimeSpan.Zero) mono = TimeSpan.Zero;
+
+        return mono > wall ? mono : wall;
     }
 
     public TimeSpan Remaining => _total - Elapsed;
@@ -61,6 +77,7 @@ public sealed class TimerEngine
         _total = duration;
         _accumulatedElapsed = TimeSpan.Zero;
         _startedAt = _clock.UtcNow;
+        _monotonicStartedAt = _clock.MonotonicNow;
         State = TimerState.Running;
     }
 
@@ -81,6 +98,7 @@ public sealed class TimerEngine
         {
             _accumulatedElapsed = total;
             _startedAt = null;
+            _monotonicStartedAt = null;
             State = TimerState.Completed;
             return;
         }
@@ -89,12 +107,22 @@ public sealed class TimerEngine
         if (remaining > total) remaining = total;
         _accumulatedElapsed = total - remaining;
         _startedAt = now;
+        // No monotonic anchor across a process restart: the absolute wall-clock end
+        // time is authoritative for a rehydrated timer, so RunningDelta falls back to it.
+        _monotonicStartedAt = null;
         State = TimerState.Running;
     }
 
+    // Anchor the projected end time to (now + Remaining) rather than
+    // (start + total). Elapsed is monotonic-protected (max of mono/wall deltas),
+    // but _startedAt is wall-clock only; after a backward wall-clock jump the
+    // start-anchored form pushes EndTime too far into the future, so a saved
+    // snapshot rehydrates with the user's progress erased. Using Remaining keeps
+    // the persisted end time consistent with the elapsed the engine actually
+    // reports.
     public DateTimeOffset? EndTime => State switch
     {
-        TimerState.Running => _startedAt!.Value + (_total - _accumulatedElapsed),
+        TimerState.Running => _clock.UtcNow + Remaining,
         TimerState.Paused => null,
         _ => null,
     };
@@ -112,6 +140,7 @@ public sealed class TimerEngine
         _total = total;
         _accumulatedElapsed = elapsed;
         _startedAt = null;
+        _monotonicStartedAt = null;
         State = TimerState.Paused;
     }
 
@@ -125,8 +154,20 @@ public sealed class TimerEngine
     {
         if (State != TimerState.Running) return;
 
-        _accumulatedElapsed += _clock.UtcNow - _startedAt!.Value;
+        _accumulatedElapsed += RunningDelta();
         _startedAt = null;
+        _monotonicStartedAt = null;
+
+        // If the timer already ran out (e.g. it expired while the machine slept and
+        // Pause was called before Tick), complete it rather than stranding it at
+        // Paused-100%, which would never fire completion.
+        if (_accumulatedElapsed >= _total)
+        {
+            _accumulatedElapsed = _total;
+            State = TimerState.Completed;
+            return;
+        }
+
         State = TimerState.Paused;
     }
 
@@ -135,12 +176,14 @@ public sealed class TimerEngine
         if (State != TimerState.Paused) return;
 
         _startedAt = _clock.UtcNow;
+        _monotonicStartedAt = _clock.MonotonicNow;
         State = TimerState.Running;
     }
 
     public void Stop()
     {
         _startedAt = null;
+        _monotonicStartedAt = null;
         _accumulatedElapsed = TimeSpan.Zero;
         _total = TimeSpan.Zero;
         State = TimerState.Idle;
@@ -155,6 +198,7 @@ public sealed class TimerEngine
         {
             _accumulatedElapsed = _total;
             _startedAt = null;
+            _monotonicStartedAt = null;
             State = TimerState.Completed;
         }
     }

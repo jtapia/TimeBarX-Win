@@ -6,4 +6,19 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!--
+    Inject the production license signing secret at build time. Set it either as
+    an MSBuild property (-p:LicenseSecret=...) or via the TIMEBARX_LICENSE_SECRET
+    environment variable; the env var wins if both are present. When neither is
+    set (local dev / tests) the checked-in LicenseKey.DefaultSecret placeholder
+    is used. Release builds MUST set it — see DIRECT_CHANNEL.md.
+  -->
+  <PropertyGroup>
+    <LicenseSecret Condition="'$(TIMEBARX_LICENSE_SECRET)' != ''">$(TIMEBARX_LICENSE_SECRET)</LicenseSecret>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(LicenseSecret)' != ''">
+    <AssemblyMetadata Include="TimeBarX.LicenseSecret" Value="$(LicenseSecret)" />
+  </ItemGroup>
+
 </Project>

@@ -38,6 +38,9 @@
                                 <NativeMenuItem Header="Custom…" Click="OnStartCustomClicked" />
                             </NativeMenu>
                         </NativeMenuItem>
+                        <NativeMenuItem Header="Start Pomodoro cycle"
+                                        Click="OnStartPomodoroClicked"
+                                        IsEnabled="{Binding CanStart}" />
                         <NativeMenuItem Header="Pause"
                                         Click="OnPauseClicked"
                                         IsEnabled="{Binding CanPause}" />

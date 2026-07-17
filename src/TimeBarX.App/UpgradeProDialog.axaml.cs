@@ -19,6 +19,12 @@ public partial class UpgradeProDialog : Window
     private TextBlock? _status;
     private Control? _licensePanel;
     private TextBox? _licenseInput;
+    private Button? _buyButton;
+    private Button? _restoreButton;
+
+    // Guards against a second Buy/Restore starting a concurrent Store operation
+    // on the same StoreContext while one is already in flight.
+    private bool _storeOpInFlight;
 
     /// <summary>
     /// Parameterless ctor only exists so the Avalonia XAML loader can resolve
@@ -34,6 +40,24 @@ public partial class UpgradeProDialog : Window
         _status = this.FindControl<TextBlock>("StatusText");
         _licensePanel = this.FindControl<Control>("LicensePanel");
         _licenseInput = this.FindControl<TextBox>("LicenseInput");
+        _buyButton = this.FindControl<Button>("BuyButton");
+        _restoreButton = this.FindControl<Button>("RestoreButton");
+    }
+
+    private bool BeginStoreOp()
+    {
+        if (_storeOpInFlight) return false;
+        _storeOpInFlight = true;
+        if (_buyButton is not null) _buyButton.IsEnabled = false;
+        if (_restoreButton is not null) _restoreButton.IsEnabled = false;
+        return true;
+    }
+
+    private void EndStoreOp()
+    {
+        _storeOpInFlight = false;
+        if (_buyButton is not null) _buyButton.IsEnabled = true;
+        if (_restoreButton is not null) _restoreButton.IsEnabled = true;
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
@@ -43,17 +67,40 @@ public partial class UpgradeProDialog : Window
     private async void OnBuyClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
 #if WINDOWS
+        if (_entitlements is StoreEntitlements { IsStoreAvailable: false })
+        {
+            // Direct (non-MSIX) build: no Store runtime. Point the user at the
+            // license-key flow that is the actual direct-channel purchase path.
+            ShowStatus("This build unlocks Pro with a license key. Enter it below.");
+            OnShowLicenseClicked(sender, e);
+            return;
+        }
         if (_entitlements is StoreEntitlements store)
         {
-            ShowStatus("Opening Microsoft Store…");
-            var status = await store.BuyAsync().ConfigureAwait(true);
-            if (status is Windows.Services.Store.StorePurchaseStatus.Succeeded
-                or Windows.Services.Store.StorePurchaseStatus.AlreadyPurchased)
+            if (!BeginStoreOp()) return;
+            try
             {
-                Close();
-                return;
+                ShowStatus("Opening Microsoft Store…");
+                var hwnd = TryGetHwnd();
+                if (hwnd == IntPtr.Zero)
+                {
+                    ShowStatus("Purchase did not complete (no window handle available).");
+                    return;
+                }
+                var status = await store.BuyAsync(hwnd).ConfigureAwait(true);
+                if (status is Windows.Services.Store.StorePurchaseStatus.Succeeded
+                    or Windows.Services.Store.StorePurchaseStatus.AlreadyPurchased)
+                {
+                    Close();
+                    return;
+                }
+                var detail = store.LastError is { } err ? $"\n{err}" : "";
+                ShowStatus($"Purchase did not complete ({status}).{detail}");
             }
-            ShowStatus($"Purchase did not complete ({status}).");
+            finally
+            {
+                EndStoreOp();
+            }
             return;
         }
 #endif
@@ -74,15 +121,34 @@ public partial class UpgradeProDialog : Window
 #if WINDOWS
         if (_entitlements is StoreEntitlements store)
         {
-            ShowStatus("Checking Microsoft Store for prior purchase…");
-            await store.RefreshAsync().ConfigureAwait(true);
-            if (_entitlements.IsPro)
+            if (!BeginStoreOp()) return;
+            try
             {
-                Close();
-                return;
+                ShowStatus("Checking Microsoft Store for prior purchase…");
+                var result = await store.RefreshAsync().ConfigureAwait(true);
+                switch (result)
+                {
+                    case RefreshResult.Owned:
+                        Close();
+                        return;
+                    case RefreshResult.NotOwned:
+                        ShowStatus("No prior purchase found on this Microsoft account.");
+                        return;
+                    case RefreshResult.NoStoreRuntime:
+                        // Direct (non-MSIX) build: no Store to restore from.
+                        // Retrying can't help — steer to the license-key flow.
+                        ShowStatus("This build unlocks Pro with a license key. Enter it below.");
+                        OnShowLicenseClicked(sender, e);
+                        return;
+                    default: // CheckFailed — don't claim "never purchased" on a failed query.
+                        ShowStatus("Couldn't reach the Microsoft Store. Check your connection and try again.");
+                        return;
+                }
             }
-            ShowStatus("No prior purchase found on this Microsoft account.");
-            return;
+            finally
+            {
+                EndStoreOp();
+            }
         }
 #endif
         await System.Threading.Tasks.Task.CompletedTask;
@@ -110,6 +176,16 @@ public partial class UpgradeProDialog : Window
             return;
         }
         ShowStatus("That key didn't verify. Check for typos or paste again from your purchase email.");
+    }
+
+    private IntPtr TryGetHwnd()
+    {
+        // Avalonia exposes the native window handle through the platform impl.
+        // On Windows this is the top-level HWND that WinRT.Interop needs to
+        // parent the Store purchase dialog. Returns Zero if the window hasn't
+        // been shown yet (native handle isn't created until first show).
+        var handle = TryGetPlatformHandle();
+        return handle?.Handle ?? IntPtr.Zero;
     }
 
     private void ShowStatus(string text)

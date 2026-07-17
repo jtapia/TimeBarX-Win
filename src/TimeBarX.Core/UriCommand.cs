@@ -24,7 +24,14 @@ public sealed record UriCommand(
         if (!Uri.TryCreate(input, UriKind.Absolute, out var uri)) return false;
         if (!string.Equals(uri.Scheme, Scheme, StringComparison.OrdinalIgnoreCase)) return false;
 
-        var action = uri.Host.ToLowerInvariant();
+        // Accept both host-form (timebarx://start) and path-form
+        // (timebarx:/start). External launchers (Flow Launcher, PowerToys Run)
+        // sometimes drop the double slash; fall back to the first path segment
+        // when the host is empty rather than rejecting.
+        var action = (uri.Host.Length > 0
+            ? uri.Host
+            : uri.AbsolutePath.Trim('/').Split('/', 2)[0]
+        ).ToLowerInvariant();
         var query = ParseQuery(uri.Query);
 
         switch (action)
@@ -62,13 +69,18 @@ public sealed record UriCommand(
             var eq = pair.IndexOf('=');
             if (eq < 0)
             {
-                result[Uri.UnescapeDataString(pair)] = string.Empty;
+                result[Decode(pair)] = string.Empty;
                 continue;
             }
-            var k = Uri.UnescapeDataString(pair[..eq]);
-            var v = Uri.UnescapeDataString(pair[(eq + 1)..]);
+            var k = Decode(pair[..eq]);
+            var v = Decode(pair[(eq + 1)..]);
             result[k] = v;
         }
         return result;
     }
+
+    // Query components are form-encoded, so '+' means a space. Uri.UnescapeDataString
+    // leaves '+' literal, so translate it first (matching what browsers/tools emit).
+    private static string Decode(string component)
+        => Uri.UnescapeDataString(component.Replace('+', ' '));
 }

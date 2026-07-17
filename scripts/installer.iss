@@ -10,7 +10,12 @@
 ; each other's outputs.
 
 #define AppName "TimeBarX"
-#define AppVersion "0.1.0"
+; Keep in lockstep with <Version> in src/TimeBarX.App/TimeBarX.App.csproj and
+; <Identity Version> in Package.appxmanifest on every release. This value shows
+; in Add/Remove Programs and the setup EXE's version resource, and an in-app
+; update check compares against it — a stale value makes it loop on "update
+; available".
+#define AppVersion "1.0.7.0"
 #define Publisher "TimeBarX"
 #define ExeName "TimeBarX.App.exe"
 
@@ -71,13 +76,18 @@ Source: "{#PublishDir}\*"; DestDir: "{app}"; \
   Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\{#AppName}"; Filename: "{app}\{#ExeName}"; Tasks: startmenuicon
+; AppUserModelID must match WindowsToastNotifier.DirectChannelAumid — Windows
+; keys desktop toast notifications to the AUMID on a Start-menu shortcut, so
+; without this the direct build's completion toasts are silently dropped.
+Name: "{group}\{#AppName}"; Filename: "{app}\{#ExeName}"; Tasks: startmenuicon; AppUserModelID: "EduardoTapia.TimeBarX.Direct"
 
 [Registry]
 ; Register the timebarx:// URI scheme so launchers and shortcuts can drive the timer.
 Root: HKCU; Subkey: "Software\Classes\timebarx"; ValueType: string; ValueName: ""; ValueData: "URL:TimeBarX Protocol"; Flags: uninsdeletekey
 Root: HKCU; Subkey: "Software\Classes\timebarx"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
-Root: HKCU; Subkey: "Software\Classes\timebarx\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#ExeName},1"
+; Icon index 0 — the published single-file EXE embeds exactly one icon
+; (ApplicationIcon in TimeBarX.App.csproj); index 1 doesn't exist and renders blank.
+Root: HKCU; Subkey: "Software\Classes\timebarx\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\{#ExeName},0"
 Root: HKCU; Subkey: "Software\Classes\timebarx\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\{#ExeName}"" ""%1"""
 
 ; Optional run-at-startup.

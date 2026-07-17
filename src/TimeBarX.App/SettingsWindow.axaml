@@ -20,6 +20,22 @@
                 </StackPanel>
                 <Separator />
                 <CheckBox Name="SoundCheck" Content="Play sound when timer completes" Click="OnSoundCheckClicked" />
+                <CheckBox Name="ToastCheck" Content="Show a notification when timer completes" Click="OnToastCheckClicked" />
+                <Separator />
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <CheckBox Name="AutoPauseCheck" Content="Auto-pause when idle for" Click="OnAutoPauseClicked" VerticalAlignment="Center" />
+                    <NumericUpDown Name="AutoPauseMinutes"
+                                   Minimum="1" Maximum="240" Increment="1"
+                                   FormatString="0"
+                                   Width="90"
+                                   ValueChanged="OnAutoPauseMinutesChanged" />
+                    <TextBlock Text="minutes" VerticalAlignment="Center" />
+                </StackPanel>
+                <Separator />
+                <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+                    <CheckBox Name="RecordHistoryCheck" Content="Record completed sessions" Click="OnRecordHistoryClicked" VerticalAlignment="Center" />
+                    <Button Content="Show history file" Click="OnShowHistoryFileClicked" />
+                </StackPanel>
                 <Separator />
                 <StackPanel Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
                     <TextBlock Text="Custom presets" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -116,10 +132,47 @@
           </ScrollViewer>
         </TabItem>
 
+        <TabItem Header="Pomodoro">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                <StackPanel Margin="12" Spacing="14">
+                    <CheckBox Name="PomodoroEnabledCheck" Content="Enable Pomodoro cycle" Click="OnPomodoroEnabledClicked" />
+                    <TextBlock TextWrapping="Wrap" Foreground="#9CA3AF"
+                               Text="When enabled, starting a Pomodoro cycle runs Work → Break → Work → … automatically. Every N work sessions the break is longer." />
+                    <Separator />
+                    <Grid ColumnDefinitions="180,120,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="10">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Work duration (min)" VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Row="0" Grid.Column="1" Name="PomodoroWork"
+                                       Minimum="1" Maximum="240" Increment="1" FormatString="0"
+                                       ValueChanged="OnPomodoroWorkChanged" />
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Short break (min)" VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Row="1" Grid.Column="1" Name="PomodoroShort"
+                                       Minimum="1" Maximum="120" Increment="1" FormatString="0"
+                                       ValueChanged="OnPomodoroShortChanged" />
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Long break (min)" VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Row="2" Grid.Column="1" Name="PomodoroLong"
+                                       Minimum="1" Maximum="240" Increment="1" FormatString="0"
+                                       ValueChanged="OnPomodoroLongChanged" />
+                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Long break every" VerticalAlignment="Center" />
+                        <NumericUpDown Grid.Row="3" Grid.Column="1" Name="PomodoroLongEvery"
+                                       Minimum="2" Maximum="12" Increment="1" FormatString="0"
+                                       ValueChanged="OnPomodoroLongEveryChanged" />
+                        <TextBlock Grid.Row="3" Grid.Column="2" Text=" work sessions" VerticalAlignment="Center" />
+                    </Grid>
+                    <Separator />
+                    <CheckBox Name="PomodoroAutoAdvanceCheck" Content="Auto-advance to the next phase" Click="OnPomodoroAutoAdvanceClicked" />
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
         <TabItem Header="Shortcuts">
             <StackPanel Margin="12" Spacing="10">
                 <TextBlock Text="Quick timer input" FontWeight="SemiBold" />
                 <TextBlock Text="Ctrl + Shift + T" FontFamily="Cascadia Mono,Consolas,monospace" />
+                <TextBlock Name="HotkeyConflictWarning"
+                           IsVisible="False"
+                           TextWrapping="Wrap"
+                           Foreground="IndianRed"
+                           Text="Another app is already using Ctrl + Shift + T, so the shortcut is inactive. You can still open quick input from the tray menu (Custom…)." />
                 <Separator />
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <TextBlock Text="Automation" FontWeight="SemiBold" VerticalAlignment="Center" />
@@ -141,6 +194,11 @@
                            HorizontalAlignment="Center"
                            Foreground="#10B981"
                            IsVisible="False" />
+                <Button Name="UpdateDownloadButton"
+                        Content="Download update"
+                        HorizontalAlignment="Center"
+                        IsVisible="False"
+                        Click="OnDownloadUpdateClicked" />
             </StackPanel>
         </TabItem>
     </TabControl>

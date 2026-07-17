@@ -41,4 +41,36 @@ internal static class NativeMethods
         public int right;
         public int bottom;
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LASTINPUTINFO
+    {
+        public uint cbSize;
+        public uint dwTime;
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static extern bool GetLastInputInfo(ref LASTINPUTINFO plii);
+
+    [DllImport("kernel32.dll")]
+    public static extern uint GetTickCount();
+
+    /// <summary>
+    /// Seconds since the user last provided keyboard or mouse input, according
+    /// to Win32. Returns <see cref="TimeSpan.Zero"/> outside Windows or on API
+    /// failure so idle-based features cleanly no-op. The wraparound of the
+    /// 32-bit tick counters (~49.7 days) is handled by unsigned subtraction.
+    /// </summary>
+    public static TimeSpan GetIdleTime()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return TimeSpan.Zero;
+
+        var info = new LASTINPUTINFO { cbSize = (uint)Marshal.SizeOf<LASTINPUTINFO>() };
+        if (!GetLastInputInfo(ref info)) return TimeSpan.Zero;
+
+        var now = GetTickCount();
+        var elapsedMs = now - info.dwTime; // unsigned wraparound math
+        return TimeSpan.FromMilliseconds(elapsedMs);
+    }
 }

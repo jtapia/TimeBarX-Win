@@ -24,12 +24,23 @@ public sealed record UpdateInfo(string LatestVersion, string DownloadUrl)
     private static int[] Parse(string v)
     {
         if (string.IsNullOrWhiteSpace(v)) return Array.Empty<int>();
-        var parts = v.Split('.', StringSplitOptions.RemoveEmptyEntries);
+        // Tolerate a leading "v" (GitHub tag style) and per-segment suffixes
+        // ("1.2.0-beta" → 1.2.0) by reading the leading digits of each segment.
+        var trimmed = v.Trim();
+        if (trimmed.Length > 0 && (trimmed[0] == 'v' || trimmed[0] == 'V')) trimmed = trimmed[1..];
+        var parts = trimmed.Split('.', StringSplitOptions.RemoveEmptyEntries);
         var result = new int[parts.Length];
         for (var i = 0; i < parts.Length; i++)
         {
-            result[i] = int.TryParse(parts[i], out var n) ? n : 0;
+            result[i] = LeadingInt(parts[i]);
         }
         return result;
+    }
+
+    private static int LeadingInt(string segment)
+    {
+        var end = 0;
+        while (end < segment.Length && char.IsAsciiDigit(segment[end])) end++;
+        return end > 0 && int.TryParse(segment.AsSpan(0, end), out var n) ? n : 0;
     }
 }

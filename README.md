@@ -12,6 +12,44 @@ TimeBarX menu-bar timer.
 
 ---
 
+## What's new in 1.0.7
+
+- **Completion notifications** — a native Windows toast when a timer
+  finishes, with **Restart** (same duration and label) and **+5 min**
+  buttons. Works in both the Store and direct builds; toggle it in
+  Settings → General. Additive to the existing sound and on-screen flash.
+
+## What's new in 1.0.6
+
+Feature parity pass, migrating the most useful additions from the macOS
+build:
+
+- **Pomodoro cycle** — Work → Break → Work → Long-break, with configurable
+  durations, long-break cadence (default: every 4 work sessions), and
+  auto-advance. Start it from the tray or from Settings → Pomodoro.
+- **Auto-pause on idle** — pause the running timer when the user has
+  been idle at the OS level (no keyboard/mouse) for N minutes. Manual
+  resume, same as macOS.
+- **Session history** — completed timers are appended to
+  `%APPDATA%\TimeBarX\history.jsonl` as one JSON object per line, safe
+  to `type`, `tail`, or ingest into anything. Toggle in Settings → General.
+- **Duration phrases** — the quick-input and `timebarx://` URIs now
+  understand "an hour and a half", "2 hours and 30 minutes", "an hour
+  and 15", "a hour and a quarter" alongside the existing `25m`, `1:30`,
+  `half hour`.
+- **Completion-sound picker** — pick among Asterisk, Beep, Exclamation,
+  Hand, Question, or Off. Existing "play sound" checkboxes upgrade
+  cleanly — nobody who had sound on loses it.
+- **Per-preset overrides (plumbing)** — custom presets can carry their
+  own completion sound and alert message via `settings.json`. The Add
+  UI still only takes name + duration; a picker for the overrides lands
+  in a follow-up.
+- **URI path-form** — `timebarx:/start?duration=25m` (single slash) now
+  works alongside `timebarx://start?…` for external launchers that drop
+  the double slash.
+
+---
+
 ## Repo layout
 
 ```
@@ -65,9 +103,16 @@ URI scheme (Windows only, after installer registers it):
 ```
 timebarx://start?duration=25m
 timebarx://start?duration=1:30&label=focus
+timebarx://start?duration=an%20hour%20and%20a%20half
 timebarx://pause
 timebarx://resume
 timebarx://stop
+```
+
+Path-form (single slash) works too, for launchers that strip the `//`:
+
+```
+timebarx:/start?duration=25m
 ```
 
 See `INTEGRATIONS.md` for PowerToys / Flow Launcher / AutoHotkey examples.
@@ -80,9 +125,9 @@ See `INTEGRATIONS.md` for PowerToys / Flow Launcher / AutoHotkey examples.
 dotnet test
 ```
 
-85+ unit tests cover the engine, parsers, persistence, color math, and
-update-version comparison. The tests use a `FakeClock`, so they're
-deterministic and fast (<1 s).
+179 unit tests cover the engine, parsers, persistence, color math,
+Pomodoro cadence, session history, and update-version comparison. The
+tests use a `FakeClock`, so they're deterministic and fast (<1 s).
 
 ---
 
@@ -132,7 +177,10 @@ Generates a signed, registry-aware installer that also registers the
    `assets/README.md`.
 3. Compile: `iscc scripts/installer.iss`
 
-Output: `artifacts/installer/TimeBarX-<version>-Setup.exe`.
+Output: `artifacts/installer/TimeBarX-Setup.exe` (or `TimeBarX-Setup-arm64.exe`
+for an ARM64 build with `iscc /DArch=arm64 scripts/installer.iss`). The
+filename is intentionally version-less — the version lives in the download
+URL path and in the installer's version resource, not the filename.
 
 For production distribution you should also sign both the EXE and the
 installer — full walkthrough in `SIGNING.md`. The full release recipe is
@@ -144,8 +192,10 @@ in `RELEASING.md`.
 
 - Timer state: `%APPDATA%\TimeBarX\state.json`
 - Settings: `%APPDATA%\TimeBarX\settings.json`
+- Session history: `%APPDATA%\TimeBarX\history.jsonl` (JSONL, one entry
+  per line)
 
-Delete either file to reset that aspect of the app.
+Delete any file to reset that aspect of the app.
 
 ---
 

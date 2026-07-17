@@ -41,15 +41,26 @@ public partial class App : Application
         Controller = new TrayController(
             new TimeBarX.Core.JsonTimerStore(),
             new TimeBarX.Core.JsonSettingsStore(),
-            composed);
+            composed,
+            new Win32IdleProbe());
     }
 
     public DisplayManager? Displays { get; private set; }
+
+    /// <summary>
+    /// True when the quick-input hotkey failed to register because another app
+    /// already owns Ctrl+Shift+T. Null when the hotkey isn't applicable yet /
+    /// on this platform. Read by Settings to warn the user the shortcut is inert.
+    /// </summary>
+    public bool HotkeyConflict => _hotkey is { IsRegistered: false }
+        && System.Runtime.InteropServices.RuntimeInformation.IsOSPlatform(
+            System.Runtime.InteropServices.OSPlatform.Windows);
 
     private PowerEventBridge? _power;
     private HotkeyService? _hotkey;
     private QuickInputWindow? _quickInput;
     private SettingsWindow? _settings;
+    private IToastNotifier _toasts = new NullToastNotifier();
 
     public override void Initialize()
     {
@@ -83,6 +94,12 @@ public partial class App : Application
             _hotkey.Pressed += OnHotkeyPressed;
             _hotkey.Start();
 
+#if WINDOWS
+            // Native completion toasts are Windows-only; ctor sets the direct-build
+            // AUMID and self-disables if the notification platform is unavailable.
+            _toasts = new WindowsToastNotifier();
+#endif
+
             // Forwarded URIs from secondary instances.
             if (Program.Instance is { } singleton)
             {
@@ -92,7 +109,9 @@ public partial class App : Application
             _ = CheckForUpdatesAsync();
 
             // URI from this process's own startup args.
-            var startupUri = desktop.Args?.FirstOrDefault(a => a.StartsWith("timebarx://", StringComparison.OrdinalIgnoreCase));
+            // Accept both host-form (timebarx://…) and path-form (timebarx:/…);
+            // UriCommand normalizes both, this just has to pick up either arg.
+            var startupUri = desktop.Args?.FirstOrDefault(a => a.StartsWith("timebarx:", StringComparison.OrdinalIgnoreCase));
             if (startupUri is not null) HandleUri(startupUri);
         }
 
@@ -123,7 +142,10 @@ public partial class App : Application
         // URI automation is a Pro feature: non-Pro users see all timebarx://
         // commands silently no-op. Silent (no toast/popup) is deliberate —
         // automation runs unattended and shouldn't surface upgrade nags.
-        if (!Controller.Entitlements.IsPro) return;
+        // Exception: commands originating from our own completion toast (src=toast)
+        // are the user clicking our UI, not automation, so they're never gated.
+        var fromToast = uri.Contains(ToastSource, StringComparison.OrdinalIgnoreCase);
+        if (!fromToast && !Controller.Entitlements.IsPro) return;
         switch (cmd.Kind)
         {
             case UriCommandKind.Start:
@@ -153,8 +175,38 @@ public partial class App : Application
 
     private void OnTimerCompleted()
     {
-        if (Controller.PlayCompletionSound) CompletionSound.Play();
+        CompletionSound.Play(Controller.EffectiveCompletionSoundForCurrent());
+        ShowCompletionToast();
     }
+
+    // Additive to the sound + overlay flash. Toast buttons carry timebarx://
+    // commands tagged src=toast so HandleUri accepts them even for non-Pro users
+    // (clicking our own UI is not the Pro-gated automation surface).
+    private void ShowCompletionToast()
+    {
+        if (!Controller.Settings.ShowCompletionToast) return;
+
+        var label = Controller.CompletedLabel;
+        var preset = Controller.CompletedPreset;
+        var restart = string.IsNullOrWhiteSpace(preset)
+            ? ToastCommandUri("start", "duration=25m")
+            : ToastCommandUri("start",
+                $"duration={Uri.EscapeDataString(preset)}" +
+                (string.IsNullOrWhiteSpace(label) ? "" : $"&label={Uri.EscapeDataString(label)}"));
+        var extend = ToastCommandUri("start", "duration=5m");
+
+        _toasts.ShowCompletion(new ToastCompletionInfo(
+            Title: string.IsNullOrWhiteSpace(label) ? "Timer complete" : $"{label} complete",
+            Body: string.IsNullOrWhiteSpace(label) ? "" : "TimeBarX",
+            RestartUri: restart,
+            ExtendUri: extend));
+    }
+
+    // Marks a toast-originated command so HandleUri can bypass the Pro gate.
+    private const string ToastSource = "src=toast";
+
+    private static string ToastCommandUri(string action, string query)
+        => $"{TimeBarX.Core.UriCommand.Scheme}://{action}?{query}&{ToastSource}";
 
     private void OnHotkeyPressed()
     {
@@ -210,7 +262,7 @@ public partial class App : Application
             {
                 var item = new NativeMenuItem(p.Name);
                 var captured = p; // capture local to avoid closure-over-loop-variable
-                item.Click += (_, _) => Controller.StartCustom(captured.Duration, FormatPresetTag(captured.Duration), captured.Label);
+                item.Click += (_, _) => Controller.StartFromPreset(captured);
                 startMenu.Items.Add(item);
             }
             startMenu.Items.Add(new NativeMenuItemSeparator());
@@ -264,6 +316,21 @@ public partial class App : Application
     private void OnStart60Clicked(object? sender, System.EventArgs e) => StartPreset(60);
     private void OnStart90Clicked(object? sender, System.EventArgs e) => StartPreset(90);
     private void OnStartCustomClicked(object? sender, System.EventArgs e) => ShowQuickInput();
+
+    private void OnStartPomodoroClicked(object? sender, System.EventArgs e)
+    {
+        // Pomodoro requires the settings block to be present and enabled; if
+        // the user hasn't enabled it, kicking off with defaults would surprise
+        // them — instead open the Settings window so they can configure it.
+        var pomo = Controller.Settings.Pomodoro;
+        if (pomo is null || !pomo.Enabled)
+        {
+            OpenSettings();
+            return;
+        }
+        Controller.StartPomodoro();
+    }
+
     private void OnPauseClicked(object? sender, System.EventArgs e) => Controller.Pause();
     private void OnResumeClicked(object? sender, System.EventArgs e) => Controller.Resume();
     private void OnStopClicked(object? sender, System.EventArgs e) => Controller.Stop();

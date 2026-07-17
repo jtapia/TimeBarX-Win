@@ -27,6 +27,10 @@ public class DurationParserTests
     [InlineData("1:30", 1, 30, 0)]
     [InlineData("0:45", 0, 45, 0)]
     [InlineData("1:23:45", 1, 23, 45)]
+    // Two-part colon form is always hours:minutes, so "90:00" is 90 hours (not
+    // 90 minutes). Locks the documented behavior against a minutes:seconds
+    // reinterpretation; use "1:30:00" for an explicit h:m:s form.
+    [InlineData("90:00", 90, 0, 0)]
     public void Parses_colon_form(string input, int h, int m, int s)
     {
         Assert.True(DurationParser.TryParse(input, out var parsed));
@@ -87,5 +91,69 @@ public class DurationParserTests
         Assert.True(DurationParser.TryParse("half hour standup", out var parsed));
         Assert.Equal(TimeSpan.FromMinutes(30), parsed.Duration);
         Assert.Equal("standup", parsed.Label);
+    }
+
+    [Theory]
+    [InlineData("99999999999h")]
+    [InlineData("600000000h")]
+    [InlineData("3000000:00")]
+    [InlineData("999999999m")]
+    [InlineData("1000h")]
+    public void Rejects_overflowing_input_without_throwing(string input)
+    {
+        Assert.False(DurationParser.TryParse(input, out _));
+    }
+
+    [Theory]
+    [InlineData("1:99")]
+    [InlineData("0:99")]
+    [InlineData("1:23:99")]
+    [InlineData("1:60")]
+    public void Rejects_out_of_range_colon_components(string input)
+    {
+        Assert.False(DurationParser.TryParse(input, out _));
+    }
+
+    [Theory]
+    [InlineData("half minute", 30)]
+    [InlineData("quarter minute", 15)]
+    public void Sub_minute_phrase_preset_round_trips(string input, int seconds)
+    {
+        Assert.True(DurationParser.TryParse(input, out var parsed));
+        Assert.Equal(TimeSpan.FromSeconds(seconds), parsed.Duration);
+        Assert.Equal($"{seconds}s", parsed.Preset);
+        // The preset must itself parse back to the same duration.
+        Assert.True(DurationParser.TryParse(parsed.Preset, out var round));
+        Assert.Equal(parsed.Duration, round.Duration);
+    }
+
+    [Theory]
+    [InlineData("an hour and 15", 75)]
+    [InlineData("an hour and a half", 90)]
+    [InlineData("an hour and a quarter", 75)]
+    [InlineData("2 hours and 30 minutes", 150)]
+    [InlineData("2 hours and half", 150)]
+    [InlineData("a hour and 20", 80)]
+    public void Parses_compound_phrase(string input, int totalMinutes)
+    {
+        Assert.True(DurationParser.TryParse(input, out var parsed));
+        Assert.Equal(TimeSpan.FromMinutes(totalMinutes), parsed.Duration);
+    }
+
+    [Fact]
+    public void Compound_phrase_captures_trailing_label()
+    {
+        Assert.True(DurationParser.TryParse("an hour and 15 deep work", out var parsed));
+        Assert.Equal(TimeSpan.FromMinutes(75), parsed.Duration);
+        Assert.Equal("deep work", parsed.Label);
+    }
+
+    [Fact]
+    public void Compound_phrase_preset_round_trips()
+    {
+        Assert.True(DurationParser.TryParse("an hour and a half", out var parsed));
+        Assert.Equal("1h 30m", parsed.Preset);
+        Assert.True(DurationParser.TryParse(parsed.Preset, out var round));
+        Assert.Equal(parsed.Duration, round.Duration);
     }
 }

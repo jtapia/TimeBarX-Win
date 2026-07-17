@@ -61,12 +61,15 @@ public sealed class OverlayPolicy : IDisposable
 
     private void OnControllerPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(TrayController.IsBarVisible)) SyncTimerToVisibility();
+        if (e.PropertyName == nameof(TrayController.IsBarActive)) SyncTimerToVisibility();
     }
 
+    // Gate the poll on IsBarActive (Running/Paused), not IsBarVisible — the
+    // latter stays true through the completion fade-out, which would otherwise
+    // keep us polling forever for a faded-out bar.
     private void SyncTimerToVisibility()
     {
-        if (!_controller.IsBarVisible)
+        if (!_controller.IsBarActive)
         {
             _timer.Stop();
             return;

@@ -9,6 +9,9 @@ public sealed class JsonTimerStore : ITimerStore
     {
         WriteIndented = false,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        // Persist the state as a string so reordering the TimerState enum can't
+        // silently reinterpret an old file (e.g. Running becoming Paused).
+        Converters = { new JsonStringEnumConverter() },
     };
 
     private readonly string _path;
@@ -16,6 +19,7 @@ public sealed class JsonTimerStore : ITimerStore
     public JsonTimerStore(string? path = null)
     {
         _path = path ?? DefaultPath();
+        AtomicFile.SweepOrphanedTemps(_path);
     }
 
     public static string DefaultPath()
@@ -30,7 +34,8 @@ public sealed class JsonTimerStore : ITimerStore
         {
             if (!File.Exists(_path)) return null;
             using var stream = File.OpenRead(_path);
-            return JsonSerializer.Deserialize<TimerSnapshot>(stream, Options);
+            var snapshot = JsonSerializer.Deserialize<TimerSnapshot>(stream, Options);
+            return IsUsable(snapshot) ? snapshot : null;
         }
         catch
         {
@@ -38,17 +43,33 @@ public sealed class JsonTimerStore : ITimerStore
         }
     }
 
+    /// <summary>
+    /// Rejects structurally invalid snapshots (corrupt-but-valid-JSON, hand-edited,
+    /// or from a reordered enum) so rehydration can't throw at startup. Both
+    /// TimerEngine.StartAt and RestorePaused require a positive Total; an undefined
+    /// State or an out-of-range ElapsedAtPause would rehydrate into an unreachable
+    /// engine state. A rejected snapshot is treated as "no saved timer".
+    /// </summary>
+    private static bool IsUsable(TimerSnapshot? s)
+    {
+        if (s is null) return false;
+        if (!Enum.IsDefined(s.State)) return false;
+        if (s.Total <= TimeSpan.Zero) return false;
+        if (s.ElapsedAtPause < TimeSpan.Zero || s.ElapsedAtPause > s.Total) return false;
+        return true;
+    }
+
     public void Save(TimerSnapshot snapshot)
     {
-        var dir = Path.GetDirectoryName(_path);
-        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-
-        var tmp = _path + ".tmp";
-        using (var stream = File.Create(tmp))
+        try
         {
-            JsonSerializer.Serialize(stream, snapshot, Options);
+            AtomicFile.WriteJson(_path, snapshot, Options);
         }
-        File.Move(tmp, _path, overwrite: true);
+        catch
+        {
+            // Best-effort persistence of transient timer state; a failed save just
+            // means the timer won't survive a restart, matching Clear's semantics.
+        }
     }
 
     public void Clear()

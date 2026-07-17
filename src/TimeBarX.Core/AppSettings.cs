@@ -32,7 +32,12 @@ public sealed record AppSettings(
     bool AlwaysAboveEverything = false,
     IReadOnlyList<string>? HideForProcesses = null,
     BarPosition Position = BarPosition.Top,
-    IReadOnlyList<CustomPreset>? CustomPresets = null)
+    IReadOnlyList<CustomPreset>? CustomPresets = null,
+    CompletionSoundChoice? CompletionSound = null,
+    int? AutoPauseOnIdleMinutes = null,
+    PomodoroSettings? Pomodoro = null,
+    bool RecordSessionHistory = true,
+    bool ShowCompletionToast = true)
 {
     public static IReadOnlyList<string> DefaultHideList { get; } = new[]
     {
@@ -50,13 +55,67 @@ public sealed record AppSettings(
         AlwaysAboveEverything: false,
         HideForProcesses: DefaultHideList,
         Position: BarPosition.Top,
-        CustomPresets: Array.Empty<CustomPreset>());
+        CustomPresets: Array.Empty<CustomPreset>(),
+        CompletionSound: null,
+        AutoPauseOnIdleMinutes: null,
+        Pomodoro: null,
+        RecordSessionHistory: true,
+        ShowCompletionToast: true);
+
+    /// <summary>
+    /// The completion sound to actually play, folding legacy settings files
+    /// into the new enum: when <see cref="CompletionSound"/> is unset (older
+    /// settings.json), we honor the boolean <see cref="PlayCompletionSound"/>
+    /// so upgrading users don't silently lose their sound.
+    /// </summary>
+    public CompletionSoundChoice EffectiveCompletionSound => CompletionSound
+        ?? (PlayCompletionSound ? CompletionSoundChoice.Asterisk : CompletionSoundChoice.Off);
 
     public AppSettings WithOpacity(double opacity)
     {
         if (opacity < 0) opacity = 0;
         if (opacity > 1) opacity = 1;
         return this with { Opacity = opacity };
+    }
+
+    /// <summary>
+    /// Returns a copy with out-of-range or undefined values coerced back to sane
+    /// defaults. Deserialization sets properties directly and bypasses the
+    /// validation in the constructors/helpers, so a hand-edited or corrupt file
+    /// (e.g. Opacity 42.0, or an enum value from another version) would otherwise
+    /// load unclamped. Applied per-field so one bad value doesn't discard the rest.
+    /// </summary>
+    public AppSettings Sanitize()
+    {
+        var opacity = double.IsFinite(Opacity) ? Math.Clamp(Opacity, 0.0, 1.0) : Default.Opacity;
+        var color = Enum.IsDefined(Color) ? Color : Default.Color;
+        var height = Enum.IsDefined(Height) ? Height : Default.Height;
+        var position = Enum.IsDefined(Position) ? Position : Default.Position;
+        var duration = DefaultDuration > TimeSpan.Zero ? DefaultDuration : Default.DefaultDuration;
+
+        var sound = CompletionSound is { } cs && Enum.IsDefined(cs) ? cs : (CompletionSoundChoice?)null;
+        var idle = AutoPauseOnIdleMinutes is > 0 and <= 240 ? AutoPauseOnIdleMinutes : null;
+        var pomodoro = Pomodoro?.Sanitize();
+
+        return this with
+        {
+            Opacity = opacity,
+            Color = color,
+            Height = height,
+            Position = position,
+            DefaultDuration = duration,
+            HideForProcesses = HideForProcesses ?? DefaultHideList,
+            // Drop malformed presets (empty name, non-positive duration) rather
+            // than surfacing a nameless preset whose click would feed
+            // TimerEngine.Start(Zero) and throw. IsValid would otherwise be dead
+            // code on the load path.
+            CustomPresets = (CustomPresets ?? Array.Empty<CustomPreset>())
+                .Where(p => p.IsValid)
+                .ToArray(),
+            CompletionSound = sound,
+            AutoPauseOnIdleMinutes = idle,
+            Pomodoro = pomodoro,
+        };
     }
 
     /// <summary>The default bar color used when entitlement clamps non-Pro users.</summary>

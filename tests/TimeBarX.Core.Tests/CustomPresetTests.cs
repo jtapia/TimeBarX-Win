@@ -59,4 +59,54 @@ public class CustomPresetTests
         Assert.NotNull(AppSettings.Default.CustomPresets);
         Assert.Empty(AppSettings.Default.CustomPresets!);
     }
+
+    [Fact]
+    public void Overrides_round_trip_through_json()
+    {
+        var preset = new CustomPreset(
+            "Deep work",
+            TimeSpan.FromMinutes(50),
+            "coding",
+            CompletionSoundChoice.Beep,
+            "Time to stretch");
+        var json = JsonSerializer.Serialize(preset);
+        var loaded = JsonSerializer.Deserialize<CustomPreset>(json);
+        Assert.Equal(preset, loaded);
+    }
+
+    [Fact]
+    public void Sanitize_drops_invalid_presets()
+    {
+        // A settings file with a nameless / zero-duration preset (older bug, sync
+        // conflict, hand-edit) must not surface a preset whose click would feed
+        // TimerEngine.Start(Zero) and throw.
+        var settings = AppSettings.Default with
+        {
+            CustomPresets = new[]
+            {
+                new CustomPreset("Good", TimeSpan.FromMinutes(10)),
+                new CustomPreset("", TimeSpan.FromMinutes(5)),      // no name
+                new CustomPreset("Zero", TimeSpan.Zero),            // non-positive
+            }
+        };
+
+        var clean = settings.Sanitize();
+
+        Assert.NotNull(clean.CustomPresets);
+        Assert.Single(clean.CustomPresets!);
+        Assert.Equal("Good", clean.CustomPresets![0].Name);
+    }
+
+    [Fact]
+    public void Legacy_preset_without_overrides_deserializes()
+    {
+        // Simulates a settings.json produced by an older version — no
+        // CompletionSound/AlertMessage fields at all.
+        var legacy = "{\"Name\":\"Standup\",\"Duration\":\"00:15:00\"}";
+        var loaded = JsonSerializer.Deserialize<CustomPreset>(legacy);
+        Assert.NotNull(loaded);
+        Assert.Equal("Standup", loaded!.Name);
+        Assert.Null(loaded.CompletionSound);
+        Assert.Null(loaded.AlertMessage);
+    }
 }
