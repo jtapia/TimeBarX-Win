@@ -295,6 +295,13 @@ public sealed class TrayController : INotifyPropertyChanged
     /// Preset string of the current/just-finished timer (e.g. "25m", "1h 30m").
     /// Valid to read from the Completed handler — cleared only on Stop / a new
     /// start — so a completion toast can offer a "Restart" of the same duration.
+    ///
+    /// This value MUST remain parseable by <see cref="DurationParser"/>: the
+    /// completion toast's Restart button feeds it back through
+    /// <c>timebarx://start?duration=</c>. If <see cref="FormatPreset"/> ever
+    /// emits a token that <see cref="DurationParser"/> can't round-trip (e.g.
+    /// changing "25m" to "25 min"), the Restart button silently starts the
+    /// default 25-minute timer instead of the one that just finished.
     /// </summary>
     public string CompletedPreset => _currentPreset;
 
