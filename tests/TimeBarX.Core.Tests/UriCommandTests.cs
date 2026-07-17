@@ -84,4 +84,20 @@ public class UriCommandTests
         Assert.Equal(TimeSpan.FromMinutes(25), cmd.Duration);
         Assert.Equal("review", cmd.Label);
     }
+
+    // Locks in the invariant that every URI the app hands to Windows (jump
+    // list, completion toast) is parseable by our own URI handler. If a
+    // future edit introduces a shape that TryParse rejects, activation would
+    // silently no-op — surfacing the mismatch here catches it at build time
+    // instead of on a user's machine.
+    [Theory]
+    [InlineData("timebarx://start?duration=25m")]
+    [InlineData("timebarx://start?duration=50m")]
+    [InlineData("timebarx://pause")]
+    [InlineData("timebarx://resume")]
+    [InlineData("timebarx://stop")]
+    public void Jump_list_uris_are_all_parseable(string uri)
+    {
+        Assert.True(UriCommand.TryParse(uri, out _));
+    }
 }

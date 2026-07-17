@@ -61,6 +61,7 @@ public partial class App : Application
     private QuickInputWindow? _quickInput;
     private SettingsWindow? _settings;
     private IToastNotifier _toasts = new NullToastNotifier();
+    private IJumpList _jumpList = new NullJumpList();
 
     public override void Initialize()
     {
@@ -98,6 +99,14 @@ public partial class App : Application
             // Native completion toasts are Windows-only; ctor sets the direct-build
             // AUMID and self-disables if the notification platform is unavailable.
             _toasts = new WindowsToastNotifier();
+
+            // Taskbar/Start-icon jump list: one-click "Start 25 min", Pause,
+            // Resume, Stop, Start Pomodoro. Published once at startup — the
+            // list is static and doesn't need refreshing. Failure to publish
+            // is silent (see WindowsJumpList): a missing jump list is a soft
+            // feature, never worth blocking the app on.
+            _jumpList = new WindowsJumpList();
+            _jumpList.Publish(JumpListEntries.Default());
 #endif
 
             // Forwarded URIs from secondary instances.
