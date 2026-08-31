@@ -98,6 +98,48 @@ public class CompositeEntitlementsTests
     }
 }
 
+public class EntitlementCapabilityTests
+{
+    [Fact]
+    public void Free_HasNoPro()
+    {
+        Assert.False(Entitlement.Free.Pro);
+    }
+
+    [Fact]
+    public void ProUnlocked_HasPro()
+    {
+        Assert.True(Entitlement.ProUnlocked.Pro);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void FromIsPro_MapsFlag(bool isPro)
+    {
+        Assert.Equal(isPro, Entitlement.FromIsPro(isPro).Pro);
+    }
+
+    [Fact]
+    public void ClampForEntitlement_EntitlementOverload_MatchesBoolOverload()
+    {
+        // The bool convenience overload must delegate to the Entitlement one:
+        // both paths produce equal results for the same Pro state.
+        var s = AppSettings.Default with
+        {
+            Color = BarColor.Purple,
+            GradientMode = true,
+            AlwaysAboveEverything = true,
+        };
+        Assert.Equal(
+            s.ClampForEntitlement(isPro: false),
+            s.ClampForEntitlement(Entitlement.Free));
+        Assert.Equal(
+            s.ClampForEntitlement(isPro: true),
+            s.ClampForEntitlement(Entitlement.ProUnlocked));
+    }
+}
+
 public class ClampForEntitlementTests
 {
     // A settings record with every field set to a non-default value (a mix of
