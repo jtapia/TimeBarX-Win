@@ -23,7 +23,7 @@ public partial class App : Application
     /// The store/dev purchase channel (the concrete StoreEntitlements or
     /// MockEntitlements). The UpgradeProDialog's Buy/Restore buttons need this
     /// concrete instance — NOT the composed <see cref="TrayController.Entitlements"/>,
-    /// whose runtime type is OrEntitlements and would fail the dialog's
+    /// whose runtime type is CompositeEntitlements and would fail the dialog's
     /// `is StoreEntitlements` / `is MockEntitlements` checks.
     /// </summary>
     public TimeBarX.Core.IEntitlements PurchaseChannel { get; }
@@ -37,7 +37,7 @@ public partial class App : Application
 #else
         PurchaseChannel = new TimeBarX.App.Store.MockEntitlements();
 #endif
-        var composed = new TimeBarX.App.Store.OrEntitlements(PurchaseChannel, LicenseKey);
+        var composed = new TimeBarX.Core.CompositeEntitlements(PurchaseChannel, LicenseKey);
         Controller = new TrayController(
             new TimeBarX.Core.JsonTimerStore(),
             new TimeBarX.Core.JsonSettingsStore(),

@@ -24,6 +24,80 @@ public class EntitlementsTests
     }
 }
 
+public class CompositeEntitlementsTests
+{
+    // Minimal controllable source: flip IsPro and raise Changed on demand.
+    private sealed class FakeSource : IEntitlements
+    {
+        private bool _isPro;
+        public bool IsPro => _isPro;
+        public event Action? Changed;
+        public void Set(bool value)
+        {
+            _isPro = value;
+            Changed?.Invoke();
+        }
+    }
+
+    [Fact]
+    public void IsPro_False_WhenNoSourceIsPro()
+    {
+        using var c = new CompositeEntitlements(new FakeSource(), new FakeSource());
+        Assert.False(c.IsPro);
+    }
+
+    [Fact]
+    public void IsPro_True_WhenAnySourceIsPro()
+    {
+        var a = new FakeSource();
+        var b = new FakeSource();
+        using var c = new CompositeEntitlements(a, b);
+        b.Set(true);
+        Assert.True(c.IsPro);
+    }
+
+    [Fact]
+    public void Changed_Forwards_FromAnySource()
+    {
+        var a = new FakeSource();
+        using var c = new CompositeEntitlements(a, new FakeSource());
+        var fired = 0;
+        c.Changed += () => fired++;
+        a.Set(true);
+        Assert.Equal(1, fired);
+    }
+
+    [Fact]
+    public void Dispose_Unsubscribes_SourceChangedNoLongerForwards()
+    {
+        // The core of Finding #1: after Dispose, a source firing Changed must NOT
+        // invoke the composite's forwarder (no leaked subscription).
+        var a = new FakeSource();
+        var c = new CompositeEntitlements(a);
+        var fired = 0;
+        c.Changed += () => fired++;
+        c.Dispose();
+        a.Set(true);
+        Assert.Equal(0, fired);
+    }
+
+    [Fact]
+    public void Dispose_IsIdempotent()
+    {
+        var c = new CompositeEntitlements(new FakeSource());
+        c.Dispose();
+        c.Dispose(); // must not throw
+    }
+
+    [Fact]
+    public void NoSources_IsPro_False_AndDisposeSafe()
+    {
+        var c = new CompositeEntitlements();
+        Assert.False(c.IsPro);
+        c.Dispose();
+    }
+}
+
 public class ClampForEntitlementTests
 {
     // A settings record with every field set to a non-default value (a mix of
