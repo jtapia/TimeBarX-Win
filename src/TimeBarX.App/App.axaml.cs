@@ -20,6 +20,13 @@ public partial class App : Application
     public TimeBarX.App.Store.LicenseKeyEntitlements LicenseKey { get; } = new();
 
     /// <summary>
+    /// The time-limited Pro trial. Grants Pro for the first 14 days after first
+    /// launch, then reverts to free. Exposed so startup can drive the one-time
+    /// expiry prompt.
+    /// </summary>
+    public TimeBarX.App.Store.TrialEntitlements Trial { get; } = new();
+
+    /// <summary>
     /// The store/dev purchase channel (the concrete StoreEntitlements or
     /// MockEntitlements). The UpgradeProDialog's Buy/Restore buttons need this
     /// concrete instance — NOT the composed <see cref="TrayController.Entitlements"/>,
@@ -37,7 +44,7 @@ public partial class App : Application
 #else
         PurchaseChannel = new TimeBarX.App.Store.MockEntitlements();
 #endif
-        var composed = new TimeBarX.Core.CompositeEntitlements(PurchaseChannel, LicenseKey);
+        var composed = new TimeBarX.Core.CompositeEntitlements(PurchaseChannel, LicenseKey, Trial);
         Controller = new TrayController(
             new TimeBarX.Core.JsonTimerStore(),
             new TimeBarX.Core.JsonSettingsStore(),
