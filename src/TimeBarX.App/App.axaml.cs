@@ -123,7 +123,10 @@ public partial class App : Application
             // the list to that ambient AUMID — so the notifier must be
             // constructed first.
             _jumpList = new WindowsJumpList();
-            _jumpList.Publish(JumpListEntries.Default());
+            // Stamped with the per-launch trust query: jump-list clicks are the
+            // user clicking our own UI, not Pro-gated automation. Without it,
+            // HandleUri silently no-ops every entry for free users.
+            _jumpList.Publish(JumpListEntries.Default(OwnUiTrustQuery));
 #endif
 
             // Forwarded URIs from secondary instances.
@@ -168,13 +171,14 @@ public partial class App : Application
         // URI automation is a Pro feature: non-Pro users see all timebarx://
         // commands silently no-op. Silent (no toast/popup) is deliberate —
         // automation runs unattended and shouldn't surface upgrade nags.
-        // Exception: commands originating from our own completion toast carry
-        // a per-launch nonce (see ToastCommandUri) that only this process
-        // knows, so an external launcher can't forge the bypass by copying a
-        // static tag. The nonce dies with the process — a URI captured from a
-        // previous run stops working once the app restarts.
-        var fromToast = uri.Contains(ToastTrustQuery, StringComparison.Ordinal);
-        if (!fromToast && !Controller.Entitlements.IsPro) return;
+        // Exception: commands originating from our own UI — the completion
+        // toast and the taskbar jump list — carry a per-launch nonce (see
+        // OwnUiTrustQuery) that only this process knows, so an external
+        // launcher can't forge the bypass by copying a static tag. The nonce
+        // dies with the process — a URI captured from a previous run stops
+        // working once the app restarts.
+        var fromOwnUi = uri.Contains(OwnUiTrustQuery, StringComparison.Ordinal);
+        if (!fromOwnUi && !Controller.Entitlements.IsPro) return;
         switch (cmd.Kind)
         {
             case UriCommandKind.Start:
@@ -244,19 +248,21 @@ public partial class App : Application
             ExtendUri: extend));
     }
 
-    // Per-launch nonce that marks a URI as originating from our own completion
-    // toast. Regenerated on every process start so a URI captured from a prior
-    // run (e.g. an Action Center entry that outlived the app) can't be replayed
-    // to bypass the Pro gate — and can't be forged by an external launcher
-    // that doesn't know this process's value.
-    private readonly string _toastNonce = Guid.NewGuid().ToString("N");
+    // Per-launch nonce that marks a URI as originating from our own UI (the
+    // completion toast and the taskbar jump list). Regenerated on every process
+    // start so a URI captured from a prior run (e.g. an Action Center entry or
+    // a stale jump list that outlived the app) can't be replayed to bypass the
+    // Pro gate — and can't be forged by an external launcher that doesn't know
+    // this process's value.
+    private readonly string _ownUiNonce = Guid.NewGuid().ToString("N");
 
-    // The exact query fragment HandleUri looks for. Built once so both the URI
-    // producer (ToastCommandUri) and consumer (HandleUri) can't drift.
-    private string ToastTrustQuery => $"src={_toastNonce}";
+    // The exact query fragment HandleUri looks for. Built once so the URI
+    // producers (ToastCommandUri, the jump-list publish) and the consumer
+    // (HandleUri) can't drift.
+    private string OwnUiTrustQuery => $"src={_ownUiNonce}";
 
     private string ToastCommandUri(string action, string query)
-        => $"{TimeBarX.Core.UriCommand.Scheme}://{action}?{query}&{ToastTrustQuery}";
+        => $"{TimeBarX.Core.UriCommand.Scheme}://{action}?{query}&{OwnUiTrustQuery}";
 
     private void OnHotkeyPressed()
     {

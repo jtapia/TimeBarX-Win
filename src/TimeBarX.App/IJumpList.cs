@@ -49,12 +49,25 @@ public static class JumpListEntries
     // but silently start a bare labeled timer without the phase auto-advance
     // chain — that mismatch is worse than not offering the entry at all. Add
     // a real timebarx://pomodoro/start verb first, then wire the entry.
-    public static IReadOnlyList<JumpListEntry> Default() => new[]
+    //
+    // trustQuery: the app's per-launch own-UI trust fragment (see
+    // App.OwnUiTrustQuery). Jump-list clicks are the user clicking our own UI,
+    // not Pro-gated automation, so without it HandleUri silently no-ops every
+    // entry for free users. Stamped at publish (the list is republished each
+    // startup), it matches the running process; a click that cold-starts the
+    // app carries the previous launch's value and stays gated — same as before,
+    // never worse. UriCommand.TryParse ignores unknown query params on all verbs.
+    public static IReadOnlyList<JumpListEntry> Default(string? trustQuery = null) => new[]
     {
-        new JumpListEntry("Start 25-minute timer", "timebarx://start?duration=25m"),
-        new JumpListEntry("Start 50-minute timer", "timebarx://start?duration=50m"),
-        new JumpListEntry("Pause current timer",   "timebarx://pause"),
-        new JumpListEntry("Resume current timer",  "timebarx://resume"),
-        new JumpListEntry("Stop current timer",    "timebarx://stop"),
+        new JumpListEntry("Start 25-minute timer", WithTrust("timebarx://start?duration=25m", trustQuery)),
+        new JumpListEntry("Start 50-minute timer", WithTrust("timebarx://start?duration=50m", trustQuery)),
+        new JumpListEntry("Pause current timer",   WithTrust("timebarx://pause", trustQuery)),
+        new JumpListEntry("Resume current timer",  WithTrust("timebarx://resume", trustQuery)),
+        new JumpListEntry("Stop current timer",    WithTrust("timebarx://stop", trustQuery)),
     };
+
+    private static string WithTrust(string uri, string? trustQuery)
+        => string.IsNullOrEmpty(trustQuery)
+            ? uri
+            : uri + (uri.Contains('?') ? "&" : "?") + trustQuery;
 }
