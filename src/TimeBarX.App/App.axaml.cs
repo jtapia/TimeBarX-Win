@@ -441,6 +441,12 @@ public partial class App : Application
 
     private void OpenSettings()
     {
+        // Re-evaluate the trial clock on this natural Pro-surface gesture (same
+        // convention as the Store check: startup + Settings open). A session
+        // that outlived the 14-day window downgrades live here — the Changed →
+        // SettingsChanged chain re-locks the Pro chips and rebuilds overlays.
+        Trial.Refresh();
+
         if (_settings is not null)
         {
             _settings.Activate();
