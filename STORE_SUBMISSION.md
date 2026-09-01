@@ -59,28 +59,31 @@ That produces `artifacts\msix\TimeBarX.msix`. Partner Center signs the package f
 
 ### Short description (≤100 chars)
 
-> A thin progress-bar timer pinned to the edge of every screen. Click-through, multi-monitor, never breaks focus.
+> A thin progress-bar timer pinned to the edge of your screen. Click-through, never breaks focus. Free trial of Pro.
 
 ### Description (≤10k chars)
 
 > **TimeBarX is a timer that lives on the edge of your screen.**
 >
-> A thin always-visible progress bar pinned to the top of every monitor. Click-through, so it never gets in the way. No window to manage, no notifications to dismiss, no task list to maintain — just a quiet bar that fills as your timer runs.
+> A thin always-visible progress bar pinned to the top of your screen. Click-through, so it never gets in the way. No window to manage, no notifications to dismiss, no task list to maintain — just a quiet bar that fills as your timer runs. (Pro spans it across every connected monitor.)
 >
 > **Free, forever:**
 > - Start, pause, resume, stop — preset durations from 1 minute to 90
 > - Natural-language input: "25 min", "1:30", "45m standup"
-> - Top-of-screen bar across every connected monitor
+> - Top-of-screen bar on your primary monitor
 > - Global hotkey (Ctrl+Shift+T) for instant input
 > - Completion effects and optional system sound
 > - Survives sleep, wake, and reboot — your timer doesn't lose its place
 >
-> **Pro — one-time $4.99 unlock:**
+> **Pro — one-time $4.99 unlock (with a free 14-day trial):**
+> - Multi-monitor — the bar on every connected display
 > - Custom colors + gradient mode (green → red as time runs out)
 > - Bottom / taskbar-fill position
 > - "Always above everything" — keeps the bar over full-screen windows
 > - Save your own named presets (Standup, Pomodoro, Lunch...)
 > - `timebarx://` URI automation — wire it up with PowerToys Run, Flow Launcher, AutoHotkey
+>
+> **Try Pro free for 14 days.** Every Pro feature is unlocked for your first two weeks; after that it reverts to the free tier and you can unlock Pro any time for a one-time $4.99.
 >
 > No subscription. No account. No analytics. Your timer state lives in a JSON file on your disk. The Pro unlock is a one-time payment that you keep forever; if you change Microsoft accounts, "Restore Purchase" brings it back.
 >
@@ -100,7 +103,7 @@ timer, pomodoro, focus, progress bar, productivity, countdown, hotkey
 
 **Title**: TimeBarX Pro
 **Description**:
-> Unlock TimeBarX Pro — a one-time $4.99 upgrade. Custom colors, gradient mode, bottom/taskbar-fill position, "Always above everything", URI automation for PowerToys / Flow / AutoHotkey, and saved custom presets. No subscription, no account, no analytics. Keep it forever.
+> Unlock TimeBarX Pro — a one-time $4.99 upgrade. Multi-monitor (the bar on every connected display), custom colors, gradient mode, bottom/taskbar-fill position, "Always above everything", URI automation for PowerToys / Flow / AutoHotkey, and saved custom presets. No subscription, no account, no analytics. Keep it forever.
 
 ## Visual assets
 
@@ -141,6 +144,7 @@ Run the **age-rating questionnaire** in Partner Center → Properties → Age ra
 ## Pricing & availability
 
 - **Base app**: Free
+- **Pro add-on**: one-time $4.99 durable IAP, offered with a **14-day free trial** (enforced by the app's local trial stamp; the Store shows "Free trial" on the listing)
 - **Markets**: All available markets (no exclusions)
 - **Visibility**: Public
 

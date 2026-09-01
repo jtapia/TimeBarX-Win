@@ -134,22 +134,24 @@ financial reason to gate the whole app behind a paywall.
 ## 5. Recommended free vs. Pro split
 
 Keep the free tier genuinely useful (it's the marketing), gate the
-power-user/cosmetic surface.
+power-user/cosmetic surface. A **14-day free trial of Pro** on first launch lets
+everyone experience the full surface before the line kicks in (see Price point).
 
 **Free (the hook — never cripple the core timer):**
 - Start/pause/resume/stop, all preset durations, natural-language input
-- The bar itself: top **or bottom / taskbar-fill** position, multi-monitor, click-through, completion effects
+- The bar itself: top **or bottom / taskbar-fill** position on the **primary monitor** (single-monitor), click-through, completion effects
 - A default color + the standard height options
 - Global hotkey, persistence across restart/sleep
 
 **Pro — one-time $4.99 unlock:**
+- **Multi-monitor** — the bar on every connected display (free renders on the primary monitor only)
 - Custom/gradient colors + future theme packs
 - **"Always above everything"** experimental mode
 - `timebarx://` **URI automation** + integrations (PowerToys/Flow/AutoHotkey)
 - Per-preset customization / saved custom presets
 - (Optional) opacity fine-tuning
 
-> _Revised after launch decision: bottom/taskbar-fill position moved Free → it's a core placement choice, not a power-user extra._
+> _Revised after launch decision: bottom/taskbar-fill position moved Free → it's a core placement choice, not a power-user extra. Multi-monitor moved Free → Pro — it's the functional gate that gives free users a concrete reason to upgrade; single-monitor free stays fully usable._
 
 > Tune the line so the free tier is "delightful and complete for casual use" and
 > Pro is "for people who automate and customize." Avoid putting anything that
@@ -162,6 +164,12 @@ power-user/cosmetic surface.
 - Avoid $9.99+ (reads as expensive for a single-purpose utility).
 - Avoid $0.99 (signals throwaway; leaves money on the table for a polished tool).
 - Consider a brief launch promo (free Pro for early reviewers) to seed ratings.
+- **14-day free trial of Pro:** on first launch the user gets every Pro feature
+  free for 14 days, then reverts to the free tier with a one-time upgrade prompt
+  framed around what they lost. The Store surfaces this as "Free trial"; the app
+  enforces it with a local trial stamp. Lets everyone feel multi-monitor and the
+  cosmetic surface before the paywall — the strongest conversion lever for a
+  utility whose value only lands once you've lived with it.
 
 ---
 

@@ -9,7 +9,7 @@ contributor.
 ## Ground truth (what the app actually does — don't overclaim)
 
 Free tier:
-- Thin progress bar pinned to the top or bottom edge of every monitor
+- Thin progress bar pinned to the top or bottom edge of your **primary monitor** (single-monitor; multi-monitor is Pro)
 - Click-through and always-visible; never steals focus
 - Global hotkey **Ctrl + Shift + T** opens a quick-input window
 - Natural-language duration parsing: `25m`, `1h 30m`, `1:30`, `2h review PR`, `half hour`, `quarter hour`
@@ -20,7 +20,9 @@ Free tier:
 - Persists timer + settings across restart, sleep, and wake
 - Blue bar, height/opacity/position controls, tray menu
 
-Pro tier ($4.99 one-time via Microsoft Store add-on, or direct license key):
+Pro tier ($4.99 one-time via Microsoft Store add-on, or direct license key —
+with a **14-day free trial** of Pro on first launch):
+- Multi-monitor — the bar on every connected display (free renders the primary monitor only)
 - Full color palette (Accent, Purple, Green, Red)
 - Gradient mode
 - "Always above everything" experimental mode (top-most reassertion + exclusive-fullscreen detection)
@@ -40,7 +42,7 @@ none of those on purpose.
 
 **Body:**
 
-> I got tired of Pomodoro timers stealing focus or hiding in a tray icon I forget about, so I built one that renders as a **thin progress bar pinned to the top edge of every monitor**. Click-through, always visible, never breaks focus.
+> I got tired of Pomodoro timers stealing focus or hiding in a tray icon I forget about, so I built one that renders as a **thin progress bar pinned to the top edge of your screen**. Click-through, always visible, never breaks focus. (Free runs on your main monitor; Pro spans every connected one.)
 >
 > ```
 > ██████████████████████░░░░░░░░░░░░░░
@@ -53,7 +55,7 @@ none of those on purpose.
 > - State survives restart and sleep/wake
 > - Built in .NET 10 + Avalonia; runs on Windows 10 1809+
 >
-> There's a $4.99 Pro tier for color/gradient/custom-presets/always-above-fullscreen — but everything above is free and unlimited. No account, no telemetry, no cloud, no ads.
+> There's a $4.99 Pro tier for multi-monitor (the bar on every connected display) + color/gradient/custom-presets/always-above-fullscreen — and a free 14-day trial of Pro so you can try all of it. Everything above is free on a single monitor, no strings. No account, no telemetry, no cloud, no ads.
 >
 > Trying to submit to the Microsoft Store now; happy to answer implementation questions (click-through overlays over the taskbar were a fight).
 
@@ -71,14 +73,14 @@ none of those on purpose.
 
 **Body:**
 
-> Everything I tried for time-boxing either popped up a window every session (breaks flow) or hid in a tray icon I'd forget about (defeats the purpose). Built one that just... sits at the edge of every monitor as a **thin progress bar that drains as time runs out**.
+> Everything I tried for time-boxing either popped up a window every session (breaks flow) or hid in a tray icon I'd forget about (defeats the purpose). Built one that just... sits at the edge of your screen as a **thin progress bar that drains as time runs out**.
 >
 > - Global hotkey `Ctrl+Shift+T` to start something: type `25m focus`, `1:30 deep work`, `half hour`, or `10m break`
 > - Click-through, so it never gets in your way
 > - Auto-hides for fullscreen video, so it doesn't sit over Netflix during your break
 > - No account, no cloud, no notifications you have to dismiss
 >
-> Free version has everything I actually use; $4.99 one-time unlocks colors + a few power features. Not looking for revenue as much as feedback — is there a focus-tool feature I'm missing that a bar-shaped UI could actually solve?
+> Free version has everything I actually use on one monitor; $4.99 one-time unlocks multi-monitor (the bar on every display) + colors + a few power features, and there's a free 14-day trial of Pro if you want to try them. Not looking for revenue as much as feedback — is there a focus-tool feature I'm missing that a bar-shaped UI could actually solve?
 
 **Tone notes:** This sub rewards honesty about the "why" and punishes marketing language. Ask a question at the end. Do NOT link in the title. Post on Sunday evening or Monday morning US-time.
 
@@ -93,12 +95,12 @@ none of those on purpose.
 
 **Body:**
 
-> Pomodoro app fatigue is real — I kept installing tomato-shaped apps and then closing the popup and losing track. Built a version where the timer *is* the screen border: a thin progress bar draining across the top of every monitor. Peripheral vision does the reminding, no notifications needed.
+> Pomodoro app fatigue is real — I kept installing tomato-shaped apps and then closing the popup and losing track. Built a version where the timer *is* the screen border: a thin progress bar draining across the top of your monitor (or every monitor, with Pro). Peripheral vision does the reminding, no notifications needed.
 >
 > - `Ctrl+Shift+T` → `25m` → running
 > - `Ctrl+Shift+T` → `5m break` → next cycle
 > - Auto-hides during fullscreen video (so it doesn't stalk you on breaks)
-> - Free tier is fully functional; Pro ($4.99 one-time) adds color/gradient/custom presets
+> - Free tier is fully functional on a single monitor; Pro ($4.99 one-time) adds multi-monitor + color/gradient/custom presets — with a free 14-day trial to try it
 >
 > Windows only right now (there's a macOS sibling if anyone wants that). If you've tried it, I'd love to know what preset patterns you'd want built-in.
 
@@ -127,7 +129,7 @@ none of those on purpose.
 >
 > Architecture: `TimeBarX.Core` is platform-neutral (timer engine, JSON persistence, natural-language duration parser, `IEntitlements` abstraction); `TimeBarX.App` is the Avalonia + Win32 host. Tests: 112 xUnit, deterministic via a `FakeClock`.
 >
-> Freemium: free tier is fully functional; Pro ($4.99 via Store add-on or direct license key) unlocks color palette + gradient + custom presets. HMAC-SHA256 signed offline license keys for the direct channel; `Windows.Services.Store` for the MSIX build.
+> Freemium: free tier is fully functional on a single (primary) monitor; Pro ($4.99 via Store add-on or direct license key) unlocks multi-monitor rendering + color palette + gradient + custom presets, with a 14-day trial on first launch (local trial stamp). HMAC-SHA256 signed offline license keys for the direct channel; `Windows.Services.Store` for the MSIX build.
 >
 > Happy to answer questions on any of the above — Avalonia + Win32 interop, MSIX packaging, or the freemium plumbing.
 
@@ -147,12 +149,12 @@ none of those on purpose.
 
 **Body:**
 
-> Six-week side project: a Windows timer that lives on the edge of your screen instead of in a window. Thin progress bar drains across the top of every monitor, click-through, doesn't interrupt anything.
+> Six-week side project: a Windows timer that lives on the edge of your screen instead of in a window. Thin progress bar drains across the top of your monitor (every monitor with Pro), click-through, doesn't interrupt anything.
 >
 > [screenshot]
 >
-> - Free tier: hotkey, natural-language input, URI scheme, integration with PowerToys/AutoHotkey/Flow Launcher, auto-hide for fullscreen video, persistent across restart/sleep
-> - Pro ($4.99 once): color palette, gradient, custom presets, always-above-fullscreen
+> - Free tier: hotkey, natural-language input, URI scheme, integration with PowerToys/AutoHotkey/Flow Launcher, auto-hide for fullscreen video, persistent across restart/sleep (single/primary monitor)
+> - Pro ($4.99 once): multi-monitor, color palette, gradient, custom presets, always-above-fullscreen — free 14-day trial on first launch
 > - No account, no cloud, no telemetry
 >
 > On Microsoft Store approval right now; would appreciate feedback on the free tier before it hits general release.
@@ -177,11 +179,11 @@ none of those on purpose.
 > **The recipe:**
 > 1. Register a URI handler on Windows for `timebarx://start?duration={query}`
 > 2. In PowerToys Run's URI Handler plugin, add `>` as a prefix
-> 3. `>25m focus` in Run → a thin progress bar drains across the top of every monitor for 25 minutes
+> 3. `>25m focus` in Run → a thin progress bar drains across the top of your monitor for 25 minutes (spans every monitor with Pro)
 >
 > No popup, no window steal, no tray dive. Click-through so it never gets in the way.
 >
-> The tray app is [TimeBarX](https://…) — free tier is fully functional (natural-language input, auto-hide during fullscreen VLC/Netflix, persistent across restart/sleep), $4.99 Pro adds color/gradient/custom presets. Also plugs into Flow Launcher and AutoHotkey via the same URI scheme.
+> The tray app is [TimeBarX](https://…) — free tier is fully functional on a single monitor (natural-language input, auto-hide during fullscreen VLC/Netflix, persistent across restart/sleep), $4.99 Pro adds multi-monitor + color/gradient/custom presets (free 14-day trial on first launch). Also plugs into Flow Launcher and AutoHotkey via the same URI scheme.
 >
 > Would love to hear other PowerToys Run integrations people have set up — I have three or four aliases now and they've compounded into a real launcher habit.
 
@@ -200,7 +202,7 @@ none of those on purpose.
 
 **Body:**
 
-> Windows 11 utility I built and have been using every day for six weeks: a **thin progress bar pinned to the top edge of every monitor** that drains as your timer runs. Click-through and always visible — you can see it, but it never intercepts a click.
+> Windows 11 utility I built and have been using every day for six weeks: a **thin progress bar pinned to the top edge of your monitor** that drains as your timer runs (Pro spans every connected monitor). Click-through and always visible — you can see it, but it never intercepts a click.
 >
 > - `Ctrl+Shift+T` opens a quick input. Type `25m`, `1h 30m`, `1:30`, `2h review PR`, `half hour` — it parses all of them
 > - `timebarx://` URI scheme plugs into PowerToys Run, Flow Launcher, AutoHotkey, or a plain Windows shortcut
@@ -208,7 +210,7 @@ none of those on purpose.
 > - Survives restart and sleep/wake
 > - No account, no cloud, no telemetry, no notifications you have to dismiss
 >
-> Free tier is fully functional; $4.99 one-time Pro adds a color palette, gradient mode, custom presets, and an "always above everything" mode for full-screen games.
+> Free tier is fully functional on a single monitor; $4.99 one-time Pro adds multi-monitor (the bar on every connected display), a color palette, gradient mode, custom presets, and an "always above everything" mode for full-screen games — with a free 14-day trial of Pro on first launch.
 >
 > On Microsoft Store now (or: in cert review — swap when live). Feedback on the free tier before it hits general release would be great.
 
@@ -221,7 +223,7 @@ none of those on purpose.
 Reddit's site-wide 9:1 rule (nine non-promo contributions for every self-promo post) plus per-sub rules mean this can't be optional. Get it wrong once and the account is shadowbanned from the sub.
 
 - **r/windows, r/Windows11:** allow self-promo but require the `Self-Promotion` flair. Add `[OC]` or `I made this` to the title if there's no flair option.
-- **r/productivity:** self-promo allowed once/week, must be flaired `Software / Apps`, and must include a **first-comment disclosure** like *"Disclosure: I'm the dev. Free tier is unlimited, $4.99 Pro is optional. No account, no data collection."*
+- **r/productivity:** self-promo allowed once/week, must be flaired `Software / Apps`, and must include a **first-comment disclosure** like *"Disclosure: I'm the dev. Free tier is complete for single-monitor use, $4.99 Pro (multi-monitor + colors/presets) is optional and has a free 14-day trial. No account, no data collection."*
 - **r/PomodoroTechnique, r/getdisciplined, r/SideProject:** relaxed — dev disclosure in the body is enough.
 - **r/PowerToys:** no explicit rule; add "I built the tray app" inline early in the body. Frame as recipe-sharing, not product-launching.
 - **r/csharp, r/dotnet, r/coolgithubprojects:** self-promo fine if the technical content is substantive. Dev-audience subs punish thin technical posts far more than they punish self-promo.
@@ -229,7 +231,7 @@ Reddit's site-wide 9:1 rule (nine non-promo contributions for every self-promo p
 
 **First-comment template** (post immediately after the OP so it's the top reply):
 
-> Disclosure: I'm the dev. Everything shown above is in the free tier, no strings. The $4.99 Pro tier is a one-time payment (no subscription), and the app runs the same whether you buy it or not — no nagging, no "upgrade" prompts every launch. Happy to answer anything about the build, the Win32 dance, or the design decisions.
+> Disclosure: I'm the dev. Everything shown above works in the free tier on a single monitor, no strings. Multi-monitor and the color/preset extras are the $4.99 Pro tier — a one-time payment (no subscription), with a free 14-day trial on first launch so you can try all of it. The app runs the same whether you buy it or not — no nagging, no "upgrade" prompts every launch. Happy to answer anything about the build, the Win32 dance, or the design decisions.
 
 ---
 
@@ -238,7 +240,7 @@ Reddit's site-wide 9:1 rule (nine non-promo contributions for every self-promo p
 Every product post gets these. Being caught flat-footed makes the OP look defensive; being ready wins the thread.
 
 **"Why isn't this free / open-source?"**
-> Fair question. The free tier isn't a demo — it's what I use daily. Pro exists so I can afford to keep maintaining it (Microsoft Store fees, code-signing cert, notarization all cost money). Open-sourcing is on my list, but I want the code to hit "I'm not embarrassed by it" before I put it public. Happy to answer specific implementation questions here in the meantime.
+> Fair question. The free tier isn't a demo — it's a complete single-monitor timer and what I use daily. Pro (multi-monitor + colors/presets, with a free 14-day trial) exists so I can afford to keep maintaining it (Microsoft Store fees, code-signing cert, notarization all cost money). Open-sourcing is on my list, but I want the code to hit "I'm not embarrassed by it" before I put it public. Happy to answer specific implementation questions here in the meantime.
 
 **"Why not just use \[Windows built-in timer / Focus Sessions / big-name app\]?"**
 > Windows Focus Sessions is a great fit for people who want the full session UI; this is the opposite bet — no UI, no session concept, just a bar that drains where you already look. If Focus Sessions works for you, you don't need this.
