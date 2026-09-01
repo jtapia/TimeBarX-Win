@@ -463,13 +463,38 @@ public partial class App : Application
     /// the trial is still active, the user already owns Pro through the Store or a
     /// license key, or the prompt has already been shown. Marking it shown before
     /// opening guarantees it never nags, whatever the user does in the dialog.
+    ///
+    /// On the Store build it first awaits the in-flight Store ownership refresh so
+    /// a purchaser whose entitlement hasn't been confirmed yet (fresh machine /
+    /// cleared cache) isn't shown a prompt they've already paid to never see.
     /// </summary>
-    private void MaybeShowTrialExpiredPrompt()
+    private async void MaybeShowTrialExpiredPrompt()
     {
-        // Not expired yet, or the user is Pro via Store/license (an active trial
-        // also reports IsPro, so this covers "still in trial" too): nothing to do.
-        if (!Trial.HasExpired || Controller.Entitlements.IsPro) return;
-        if (Trial.ExpiryPromptShown) return;
+        // Cheap early-outs first (no need to touch the Store): not expired, or the
+        // prompt already fired. An active trial also reports IsPro, so the expiry
+        // check alone already excludes "still in trial".
+        if (!Trial.HasExpired || Trial.ExpiryPromptShown) return;
+
+#if WINDOWS
+        // Avoid a false prompt on the narrow race where a Store owner's ownership
+        // hasn't been confirmed yet (fresh machine / cleared cache): the ctor's
+        // RefreshAsync is fire-and-forget, so IsPro can still read false here.
+        // Let the in-flight Store query settle before deciding. It's already
+        // running; awaiting it just orders our check after it.
+        if (PurchaseChannel is TimeBarX.App.Store.StoreEntitlements { IsStoreAvailable: true } store)
+        {
+            await store.RefreshAsync().ConfigureAwait(true);
+        }
+#else
+        // No Store on this build: nothing to wait for. Yield so the method is a
+        // genuine async no-op on the cross-platform TFM (keeps both TFMs warning
+        // -clean and the control flow identical).
+        await System.Threading.Tasks.Task.CompletedTask;
+#endif
+
+        // Re-check ownership after the (possible) refresh: a Store/license owner
+        // never sees the expiry prompt.
+        if (Controller.Entitlements.IsPro) return;
 
         Trial.MarkExpiryPromptShown();
 
