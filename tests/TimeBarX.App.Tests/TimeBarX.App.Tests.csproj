@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Plain net10.0 only: TrialEntitlements is cross-platform (no #if WINDOWS),
+         so we test it against the App project's non-Windows TFM and never pull in
+         WinRT refs. -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Pin to the App project's net10.0 build so restore doesn't resolve the
+         Windows TFM on a non-Windows host. -->
+    <ProjectReference Include="..\..\src\TimeBarX.App\TimeBarX.App.csproj"
+                      SetTargetFramework="TargetFramework=net10.0" />
+  </ItemGroup>
+
+</Project>
