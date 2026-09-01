@@ -11,10 +11,10 @@
             <Border Background="#1E3A8A" CornerRadius="4" Padding="8,3" VerticalAlignment="Center">
                 <TextBlock Text="Pro" Foreground="#DBEAFE" FontSize="11" FontWeight="SemiBold" />
             </Border>
-            <TextBlock Text="Unlock TimeBarX Pro" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
+            <TextBlock Name="HeadingText" Text="Unlock TimeBarX Pro" FontSize="18" FontWeight="SemiBold" VerticalAlignment="Center" />
         </StackPanel>
 
-        <TextBlock TextWrapping="Wrap"
+        <TextBlock Name="IntroText" TextWrapping="Wrap"
                    Text="A one-time unlock for power users — $2.99 introductory sale (regular $4.99). No subscription, no account." />
 
         <StackPanel Spacing="6">

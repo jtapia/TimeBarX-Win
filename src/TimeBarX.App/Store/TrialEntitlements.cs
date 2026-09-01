@@ -31,6 +31,7 @@ public sealed class TrialEntitlements : IEntitlements
     private readonly Func<DateTimeOffset> _now;
     private readonly TrialWindow _window;
     private bool _isActive;
+    private bool _expiryPromptShown;
 
     public TrialEntitlements(string? path = null, Func<DateTimeOffset>? now = null)
     {
@@ -46,6 +47,27 @@ public sealed class TrialEntitlements : IEntitlements
 
     /// <summary>The instant the trial expires (exclusive).</summary>
     public DateTimeOffset ExpiresUtc => _window.ExpiresUtc;
+
+    /// <summary>
+    /// True once the trial has lapsed and the user is not otherwise Pro — the
+    /// moment to show the one-time expiry prompt. Caller must gate on the user
+    /// not owning Pro through another channel (Store/license) before showing.
+    /// </summary>
+    public bool HasExpired => !_window.IsActive(_now());
+
+    /// <summary>Whether the one-time expiry prompt has already been shown.</summary>
+    public bool ExpiryPromptShown => _expiryPromptShown;
+
+    /// <summary>
+    /// Record that the expiry prompt has been shown so it never fires again.
+    /// Persisted next to the start stamp; idempotent.
+    /// </summary>
+    public void MarkExpiryPromptShown()
+    {
+        if (_expiryPromptShown) return;
+        _expiryPromptShown = true;
+        Persist(_window.StartedUtc);
+    }
 
     /// <summary>Default path: %APPDATA%\TimeBarX\trial.json</summary>
     public static string DefaultPath()
@@ -78,6 +100,7 @@ public sealed class TrialEntitlements : IEntitlements
                 var state = JsonSerializer.Deserialize<TrialState>(json);
                 if (state is { StartedUtc: { } started })
                 {
+                    _expiryPromptShown = state.ExpiryPromptShown;
                     return TrialWindow.Starting(started);
                 }
             }
@@ -100,7 +123,11 @@ public sealed class TrialEntitlements : IEntitlements
         {
             var dir = Path.GetDirectoryName(_path);
             if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-            var json = JsonSerializer.Serialize(new TrialState { StartedUtc = startedUtc });
+            var json = JsonSerializer.Serialize(new TrialState
+            {
+                StartedUtc = startedUtc,
+                ExpiryPromptShown = _expiryPromptShown,
+            });
             File.WriteAllText(_path, json);
         }
         catch
@@ -114,5 +141,6 @@ public sealed class TrialEntitlements : IEntitlements
     private sealed class TrialState
     {
         public DateTimeOffset? StartedUtc { get; set; }
+        public bool ExpiryPromptShown { get; set; }
     }
 }

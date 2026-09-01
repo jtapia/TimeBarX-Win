@@ -95,6 +95,11 @@ public partial class App : Application
 
             Controller.RestoreFromStore();
 
+            // One-time loss-aversion prompt when the 14-day trial has lapsed and
+            // the user isn't Pro through another channel. Deferred to the UI loop
+            // so the overlay/tray are up first and never blocks startup.
+            Avalonia.Threading.Dispatcher.UIThread.Post(MaybeShowTrialExpiredPrompt);
+
             _power = new PowerEventBridge(OnSystemResume);
             _power.Attach();
 
@@ -439,6 +444,26 @@ public partial class App : Application
         _settings = window;
         window.Closed += (_, _) => _settings = null;
         window.Show();
+    }
+
+    /// <summary>
+    /// Show the loss-aversion trial-expiry prompt at most once. Skips entirely if
+    /// the trial is still active, the user already owns Pro through the Store or a
+    /// license key, or the prompt has already been shown. Marking it shown before
+    /// opening guarantees it never nags, whatever the user does in the dialog.
+    /// </summary>
+    private void MaybeShowTrialExpiredPrompt()
+    {
+        // Not expired yet, or the user is Pro via Store/license (an active trial
+        // also reports IsPro, so this covers "still in trial" too): nothing to do.
+        if (!Trial.HasExpired || Controller.Entitlements.IsPro) return;
+        if (Trial.ExpiryPromptShown) return;
+
+        Trial.MarkExpiryPromptShown();
+
+        var dialog = new UpgradeProDialog(PurchaseChannel);
+        dialog.ShowTrialExpiredCopy();
+        dialog.Show();
     }
 
     private void OnQuitClicked(object? sender, System.EventArgs e)
