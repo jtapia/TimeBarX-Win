@@ -20,7 +20,7 @@ public partial class App : Application
     public TimeBarX.App.Store.LicenseKeyEntitlements LicenseKey { get; } = new();
 
     /// <summary>
-    /// The time-limited Pro trial. Grants Pro for the first 14 days after first
+    /// The time-limited Pro trial. Grants Pro for the first 7 days after first
     /// launch, then reverts to free. Exposed so startup can drive the one-time
     /// expiry prompt.
     /// </summary>
@@ -95,7 +95,7 @@ public partial class App : Application
 
             Controller.RestoreFromStore();
 
-            // One-time loss-aversion prompt when the 14-day trial has lapsed and
+            // One-time loss-aversion prompt when the 7-day trial has lapsed and
             // the user isn't Pro through another channel. Deferred to the UI loop
             // so the overlay/tray are up first and never blocks startup.
             Avalonia.Threading.Dispatcher.UIThread.Post(MaybeShowTrialExpiredPrompt);
@@ -443,7 +443,7 @@ public partial class App : Application
     {
         // Re-evaluate the trial clock on this natural Pro-surface gesture (same
         // convention as the Store check: startup + Settings open). A session
-        // that outlived the 14-day window downgrades live here — the Changed →
+        // that outlived the 7-day window downgrades live here — the Changed →
         // SettingsChanged chain re-locks the Pro chips and rebuilds overlays.
         Trial.Refresh();
 

@@ -16,8 +16,8 @@ namespace TimeBarX.Core;
 /// </summary>
 public readonly record struct TrialWindow(DateTimeOffset StartedUtc, TimeSpan Length)
 {
-    /// <summary>The default trial length: 14 days.</summary>
-    public static readonly TimeSpan DefaultLength = TimeSpan.FromDays(14);
+    /// <summary>The default trial length: 7 days (matches the Store free-trial period).</summary>
+    public static readonly TimeSpan DefaultLength = TimeSpan.FromDays(7);
 
     /// <summary>A trial of the default length starting at <paramref name="startedUtc"/>.</summary>
     public static TrialWindow Starting(DateTimeOffset startedUtc)

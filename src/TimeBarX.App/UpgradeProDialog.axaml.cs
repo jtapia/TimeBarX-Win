@@ -70,7 +70,7 @@ public partial class UpgradeProDialog : Window
     /// Reframe the dialog as a trial-expiry prompt: lead with what the user just
     /// lost (loss aversion) rather than a generic feature pitch. The Buy /
     /// Restore / license flows are unchanged. Used by the one-time prompt shown
-    /// when the 14-day trial lapses.
+    /// when the 7-day trial lapses.
     /// </summary>
     public void ShowTrialExpiredCopy()
     {

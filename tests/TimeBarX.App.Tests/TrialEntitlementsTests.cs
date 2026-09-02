@@ -46,9 +46,9 @@ public sealed class TrialEntitlementsTests : IDisposable
         var start = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         _ = new TrialEntitlements(_path, Clock(start));
 
-        // Reopen 10 days later: still inside the 14-day window, and it must use
+        // Reopen 3 days later: still inside the 7-day window, and it must use
         // the persisted start, not re-stamp to "now".
-        var later = start + TimeSpan.FromDays(10);
+        var later = start + TimeSpan.FromDays(3);
         var reopened = new TrialEntitlements(_path, Clock(later));
 
         Assert.True(reopened.IsPro);
@@ -60,7 +60,7 @@ public sealed class TrialEntitlementsTests : IDisposable
         var start = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
         _ = new TrialEntitlements(_path, Clock(start));
 
-        var wayLater = start + TimeSpan.FromDays(15); // past the 14-day window
+        var wayLater = start + TimeSpan.FromDays(15); // well past the 7-day window
         var expired = new TrialEntitlements(_path, Clock(wayLater));
 
         Assert.False(expired.IsPro);

@@ -10,10 +10,14 @@ public class TrialWindowTests
 
     private static TrialWindow Default() => TrialWindow.Starting(Start);
 
+    // The full window length, referenced so boundary tests track DefaultLength
+    // rather than hardcoding a day count that changes when the length changes.
+    private static readonly TimeSpan Len = TrialWindow.DefaultLength;
+
     [Fact]
-    public void DefaultLength_Is14Days()
+    public void DefaultLength_Is7Days()
     {
-        Assert.Equal(TimeSpan.FromDays(14), TrialWindow.DefaultLength);
+        Assert.Equal(TimeSpan.FromDays(7), TrialWindow.DefaultLength);
     }
 
     [Fact]
@@ -25,13 +29,13 @@ public class TrialWindowTests
     [Fact]
     public void IsActive_MidWindow()
     {
-        Assert.True(Default().IsActive(Start + TimeSpan.FromDays(7)));
+        Assert.True(Default().IsActive(Start + Len - TimeSpan.FromDays(1)));
     }
 
     [Fact]
     public void IsActive_JustBeforeExpiry()
     {
-        Assert.True(Default().IsActive(Start + TimeSpan.FromDays(14) - TimeSpan.FromSeconds(1)));
+        Assert.True(Default().IsActive(Start + Len - TimeSpan.FromSeconds(1)));
     }
 
     [Fact]
@@ -39,13 +43,13 @@ public class TrialWindowTests
     {
         // The window is half-open [start, start+length): the expiry instant
         // itself is already expired.
-        Assert.False(Default().IsActive(Start + TimeSpan.FromDays(14)));
+        Assert.False(Default().IsActive(Start + Len));
     }
 
     [Fact]
     public void NotActive_AfterExpiry()
     {
-        Assert.False(Default().IsActive(Start + TimeSpan.FromDays(15)));
+        Assert.False(Default().IsActive(Start + Len + TimeSpan.FromDays(1)));
     }
 
     [Fact]
@@ -67,18 +71,20 @@ public class TrialWindowTests
     [Fact]
     public void ExpiresUtc_IsStartPlusLength()
     {
-        Assert.Equal(Start + TimeSpan.FromDays(14), Default().ExpiresUtc);
+        Assert.Equal(Start + Len, Default().ExpiresUtc);
     }
 
     [Fact]
     public void Remaining_MidWindow_IsPositive()
     {
-        Assert.Equal(TimeSpan.FromDays(7), Default().Remaining(Start + TimeSpan.FromDays(7)));
+        // Halfway-ish through the window: a positive, sub-length remainder.
+        var elapsed = TimeSpan.FromDays(1);
+        Assert.Equal(Len - elapsed, Default().Remaining(Start + elapsed));
     }
 
     [Fact]
     public void Remaining_AfterExpiry_IsZero()
     {
-        Assert.Equal(TimeSpan.Zero, Default().Remaining(Start + TimeSpan.FromDays(20)));
+        Assert.Equal(TimeSpan.Zero, Default().Remaining(Start + Len + TimeSpan.FromDays(5)));
     }
 }
