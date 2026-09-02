@@ -75,7 +75,7 @@ That produces `artifacts\msix\TimeBarX.msix`. Partner Center signs the package f
 > - Completion effects and optional system sound
 > - Survives sleep, wake, and reboot — your timer doesn't lose its place
 >
-> **Pro — one-time $4.99 unlock (with a free 14-day trial):**
+> **Pro — one-time $4.99 unlock (with a free 7-day trial):**
 > - Multi-monitor — the bar on every connected display
 > - Custom colors + gradient mode (green → red as time runs out)
 > - Bottom / taskbar-fill position
@@ -83,7 +83,7 @@ That produces `artifacts\msix\TimeBarX.msix`. Partner Center signs the package f
 > - Save your own named presets (Standup, Pomodoro, Lunch...)
 > - `timebarx://` URI automation — wire it up with PowerToys Run, Flow Launcher, AutoHotkey
 >
-> **Try Pro free for 14 days.** Every Pro feature is unlocked for your first two weeks; after that it reverts to the free tier and you can unlock Pro any time for a one-time $4.99.
+> **Try Pro free for 7 days.** Every Pro feature is unlocked for your first week; after that it reverts to the free tier and you can unlock Pro any time for a one-time $4.99.
 >
 > No subscription. No account. No analytics. Your timer state lives in a JSON file on your disk. The Pro unlock is a one-time payment that you keep forever; if you change Microsoft accounts, "Restore Purchase" brings it back.
 >
@@ -144,7 +144,7 @@ Run the **age-rating questionnaire** in Partner Center → Properties → Age ra
 ## Pricing & availability
 
 - **Base app**: Free
-- **Pro add-on**: one-time $4.99 durable IAP, offered with a **14-day free trial** (enforced by the app's local trial stamp; the Store shows "Free trial" on the listing)
+- **Pro add-on**: one-time $4.99 durable IAP, offered with a **7-day free trial** (enforced by the app's local trial stamp; the Store shows "Free trial" on the listing)
 - **Markets**: All available markets (no exclusions)
 - **Visibility**: Public
 

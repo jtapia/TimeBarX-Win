@@ -134,7 +134,7 @@ financial reason to gate the whole app behind a paywall.
 ## 5. Recommended free vs. Pro split
 
 Keep the free tier genuinely useful (it's the marketing), gate the
-power-user/cosmetic surface. A **14-day free trial of Pro** on first launch lets
+power-user/cosmetic surface. A **7-day free trial of Pro** on first launch lets
 everyone experience the full surface before the line kicks in (see Price point).
 
 **Free (the hook — never cripple the core timer):**
@@ -164,8 +164,8 @@ everyone experience the full surface before the line kicks in (see Price point).
 - Avoid $9.99+ (reads as expensive for a single-purpose utility).
 - Avoid $0.99 (signals throwaway; leaves money on the table for a polished tool).
 - Consider a brief launch promo (free Pro for early reviewers) to seed ratings.
-- **14-day free trial of Pro:** on first launch the user gets every Pro feature
-  free for 14 days, then reverts to the free tier with a one-time upgrade prompt
+- **7-day free trial of Pro:** on first launch the user gets every Pro feature
+  free for 7 days, then reverts to the free tier with a one-time upgrade prompt
   framed around what they lost. The Store surfaces this as "Free trial"; the app
   enforces it with a local trial stamp. Lets everyone feel multi-monitor and the
   cosmetic surface before the paywall — the strongest conversion lever for a

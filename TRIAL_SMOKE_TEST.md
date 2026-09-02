@@ -1,19 +1,19 @@
-# TimeBarX Pro — 14-day trial smoke test
+# TimeBarX Pro — 7-day trial smoke test
 
 Run this on a **real Windows box** (10 1809+ or 11) after building the app.
-Verifies the trial grants Pro on first launch, reverts cleanly after 14 days,
+Verifies the trial grants Pro on first launch, reverts cleanly after 7 days,
 and shows the loss-aversion prompt exactly once. **Budget: 20 minutes.**
 
 Unlike `PURCHASE_SMOKE_TEST.md`, this needs **no Microsoft account and no
 payment** — the trial is enforced entirely by a local stamp file
 (`%APPDATA%\TimeBarX\trial.json`), independent of the Store. Time-travel is
-done by editing that file, so you never have to wait 14 real days.
+done by editing that file, so you never have to wait 7 real days.
 
 ## Ground truth (what the code does)
 
 - On first launch with no `trial.json`, `TrialEntitlements` stamps
   `StartedUtc = now` (UTC) and grants Pro for `TrialWindow.DefaultLength`
-  (**14 days**). See `src/TimeBarX.App/Store/TrialEntitlements.cs` +
+  (**7 days**). See `src/TimeBarX.App/Store/TrialEntitlements.cs` +
   `src/TimeBarX.Core/TrialWindow.cs`.
 - Pro is the OR of Store / license-key / trial (`CompositeEntitlements`), so an
   active trial unlocks **everything**: custom colors, gradient, always-above,
@@ -72,7 +72,7 @@ the trial — same root cause as a Test 1 failure.
 
 1. Quit TimeBarX (tray → Quit).
 2. Edit `%APPDATA%\TimeBarX\trial.json`: set `StartedUtc` to **15 days ago**
-   (any UTC instant more than 14 days before now). Leave `ExpiryPromptShown`
+   (any UTC instant more than 7 days before now). Leave `ExpiryPromptShown`
    as `false`. Save.
 3. Relaunch TimeBarX.
 
@@ -87,7 +87,7 @@ Expected on launch:
 **Pass:** expiry cleanly downgraded to free without deleting the user's stored
 Pro preferences (they're clamped, not wiped — see `ClampForEntitlement`).
 **If it fails:** if it's *still* Pro, confirm the account isn't Pro via Store/
-license (Precondition), and that `StartedUtc` really is >14 days back and parses
+license (Precondition), and that `StartedUtc` really is >7 days back and parses
 as UTC.
 
 ## Test 4 — The expiry prompt shows exactly once
@@ -104,7 +104,7 @@ as UTC.
 Expected: the prompt does **not** appear again.
 
 **Pass:** prompt is strictly one-time.
-**If the prompt never shows:** confirm `HasExpired` is true (StartedUtc >14 days
+**If the prompt never shows:** confirm `HasExpired` is true (StartedUtc >7 days
 back), the account isn't otherwise Pro, and `ExpiryPromptShown` was `false`
 before the relaunch in step 1.
 **If it shows every launch:** `MarkExpiryPromptShown` isn't persisting — check

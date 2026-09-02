@@ -13,8 +13,8 @@ These shape the rest of the plan. **Decided** — no longer open. Revisit only w
 | Decision | Locked answer | Rationale |
 |---|---|---|
 | **`timebarx://` URI automation** — Free or Pro? | **Pro** | Aligns with §5 list. Treats automation as a power-user upsell. Tradeoff acknowledged: gating it costs an evangelism surface; revisit post-launch if power-user adoption stalls. |
-| **Multi-monitor** — Free or Pro? | **Pro** _(moved; was Free)_ | It's the functional gate that gives free users a real reason to pay. Free renders the bar on the **primary monitor only**; Pro spans **every connected display**. Single-monitor free stays fully usable, and the 14-day trial lets everyone experience multi-monitor before deciding. |
-| **14-day Pro trial** — in scope? | **Yes — in scope** _(new)_ | First launch grants all Pro features free for 14 days, then reverts to free with a one-time "here's what you lost" upgrade prompt. Store supports it natively ("Free trial"); the app enforces it via a local trial stamp. Lets everyone feel multi-monitor + the cosmetic surface before the paywall. |
+| **Multi-monitor** — Free or Pro? | **Pro** _(moved; was Free)_ | It's the functional gate that gives free users a real reason to pay. Free renders the bar on the **primary monitor only**; Pro spans **every connected display**. Single-monitor free stays fully usable, and the 7-day trial lets everyone experience multi-monitor before deciding. |
+| **7-day Pro trial** — in scope? | **Yes — in scope** _(new)_ | First launch grants all Pro features free for 7 days, then reverts to free with a one-time "here's what you lost" upgrade prompt. Store supports it natively ("Free trial"); the app enforces it via a local trial stamp. Lets everyone feel multi-monitor + the cosmetic surface before the paywall. |
 | **Bottom / taskbar-fill mode** — Free or Pro? | **Free** _(revised; was Pro)_ | Position (Top/Bottom) is a core placement choice, not a power-user extra. Kept free so the bar works where the user wants out of the box; the marquee taskbar-fill visual also helps sell the app in screenshots. |
 | **Store SKU shape** — paid app + free SKU, or single free SKU with one IAP? | **Single free SKU + one durable IAP** | One listing accumulates reviews/ranking. Single non-consumable IAP "TimeBarX Pro" is the cleanest, matches the §3 economics (15% cut, ~$4.24 net per sale). |
 | **Direct (non-Store) Pro unlock** — Gumroad license keys, Paddle, or honor-system? | **Defer to v1.1** | Ship Store first. Direct is §6's "found us via GitHub" funnel; not blocking launch. Phase 6 handles it. |
@@ -144,7 +144,7 @@ This is the single biggest unknown, so call it out explicitly:
 
 - **Phase 1:** `dotnet test` green; `Entitlements` injectable; default impl returns false; env-var/dev override works on macOS dev box.
 - **Phase 2:** real Store add-on round-trips a purchase in the Store sandbox; `Changed` fires; tray menu shows "Buy Pro…" on Windows only.
-- **Phase 3:** all Pro-gated settings show lock chips + modal; clamping preserves stored values; free users cannot reach Pro behavior by editing JSON. Multi-monitor gated in `DisplayManager` — free renders the primary monitor only, Pro spans every display. The 14-day trial grants full Pro on first launch and reverts cleanly (via the local trial stamp) with the one-time upgrade prompt.
+- **Phase 3:** all Pro-gated settings show lock chips + modal; clamping preserves stored values; free users cannot reach Pro behavior by editing JSON. Multi-monitor gated in `DisplayManager` — free renders the primary monitor only, Pro spans every display. The 7-day trial grants full Pro on first launch and reverts cleanly (via the local trial stamp) with the one-time upgrade prompt.
 - **Phase 4:** custom presets persist, show in tray, behind Pro gate.
 - **Phase 5:** Store listing live, app downloadable, IAP buyable end-to-end.
 - **Phase 6:** at least 10 promo codes distributed; ≥ 3 organic reviews; direct license-key path documented.
@@ -157,4 +157,4 @@ This is the single biggest unknown, so call it out explicitly:
 - Cross-platform Pro (macOS already has its own TimeBarX; Pro entitlement does not cross stores).
 - Server-side license validation — fully offline; HMAC-signed key for direct, `StoreContext` for Store.
 
-> _Note: "a trial mode — the free tier is the trial" was previously out of scope. That's no longer true: a **14-day Pro trial** shipped (see §0) and is now in scope, enforced via a local trial stamp._
+> _Note: "a trial mode — the free tier is the trial" was previously out of scope. That's no longer true: a **7-day Pro trial** shipped (see §0) and is now in scope, enforced via a local trial stamp._
