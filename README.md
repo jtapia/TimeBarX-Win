@@ -12,7 +12,7 @@ TimeBarX menu-bar timer.
 
 ---
 
-## What's new in 1.0.10
+## What's new in 1.0.11
 
 - **New app icon** — the starry-clock icon, matching the macOS and web apps.
 - **Free 7-day Pro trial** — every Pro feature is unlocked for your first
