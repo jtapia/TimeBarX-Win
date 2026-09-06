@@ -12,6 +12,15 @@ TimeBarX menu-bar timer.
 
 ---
 
+## What's new in 1.0.10
+
+- **New app icon** — the starry-clock icon, matching the macOS and web apps.
+- **Free 7-day Pro trial** — every Pro feature is unlocked for your first
+  week after install, then reverts to the free tier with a one-time upgrade
+  prompt. No account, no card — enforced by a local trial stamp.
+- **Multi-monitor is now a Pro feature** — the free tier shows the bar on
+  your primary monitor; Pro spans it across every connected display.
+
 ## What's new in 1.0.8
 
 - **Taskbar jump list** — right-click the TimeBarX taskbar or Start-menu
