@@ -20,10 +20,17 @@ public partial class App : Application
     public TimeBarX.App.Store.LicenseKeyEntitlements LicenseKey { get; } = new();
 
     /// <summary>
+    /// The time-limited Pro trial. Grants Pro for the first 7 days after first
+    /// launch, then reverts to free. Exposed so startup can drive the one-time
+    /// expiry prompt.
+    /// </summary>
+    public TimeBarX.App.Store.TrialEntitlements Trial { get; } = new();
+
+    /// <summary>
     /// The store/dev purchase channel (the concrete StoreEntitlements or
     /// MockEntitlements). The UpgradeProDialog's Buy/Restore buttons need this
     /// concrete instance — NOT the composed <see cref="TrayController.Entitlements"/>,
-    /// whose runtime type is OrEntitlements and would fail the dialog's
+    /// whose runtime type is CompositeEntitlements and would fail the dialog's
     /// `is StoreEntitlements` / `is MockEntitlements` checks.
     /// </summary>
     public TimeBarX.Core.IEntitlements PurchaseChannel { get; }
@@ -37,7 +44,7 @@ public partial class App : Application
 #else
         PurchaseChannel = new TimeBarX.App.Store.MockEntitlements();
 #endif
-        var composed = new TimeBarX.App.Store.OrEntitlements(PurchaseChannel, LicenseKey);
+        var composed = new TimeBarX.Core.CompositeEntitlements(PurchaseChannel, LicenseKey, Trial);
         Controller = new TrayController(
             new TimeBarX.Core.JsonTimerStore(),
             new TimeBarX.Core.JsonSettingsStore(),
@@ -88,6 +95,11 @@ public partial class App : Application
 
             Controller.RestoreFromStore();
 
+            // One-time loss-aversion prompt when the 7-day trial has lapsed and
+            // the user isn't Pro through another channel. Deferred to the UI loop
+            // so the overlay/tray are up first and never blocks startup.
+            Avalonia.Threading.Dispatcher.UIThread.Post(MaybeShowTrialExpiredPrompt);
+
             _power = new PowerEventBridge(OnSystemResume);
             _power.Attach();
 
@@ -111,7 +123,10 @@ public partial class App : Application
             // the list to that ambient AUMID — so the notifier must be
             // constructed first.
             _jumpList = new WindowsJumpList();
-            _jumpList.Publish(JumpListEntries.Default());
+            // Stamped with the per-launch trust query: jump-list clicks are the
+            // user clicking our own UI, not Pro-gated automation. Without it,
+            // HandleUri silently no-ops every entry for free users.
+            _jumpList.Publish(JumpListEntries.Default(OwnUiTrustQuery));
 #endif
 
             // Forwarded URIs from secondary instances.
@@ -156,13 +171,14 @@ public partial class App : Application
         // URI automation is a Pro feature: non-Pro users see all timebarx://
         // commands silently no-op. Silent (no toast/popup) is deliberate —
         // automation runs unattended and shouldn't surface upgrade nags.
-        // Exception: commands originating from our own completion toast carry
-        // a per-launch nonce (see ToastCommandUri) that only this process
-        // knows, so an external launcher can't forge the bypass by copying a
-        // static tag. The nonce dies with the process — a URI captured from a
-        // previous run stops working once the app restarts.
-        var fromToast = uri.Contains(ToastTrustQuery, StringComparison.Ordinal);
-        if (!fromToast && !Controller.Entitlements.IsPro) return;
+        // Exception: commands originating from our own UI — the completion
+        // toast and the taskbar jump list — carry a per-launch nonce (see
+        // OwnUiTrustQuery) that only this process knows, so an external
+        // launcher can't forge the bypass by copying a static tag. The nonce
+        // dies with the process — a URI captured from a previous run stops
+        // working once the app restarts.
+        var fromOwnUi = uri.Contains(OwnUiTrustQuery, StringComparison.Ordinal);
+        if (!fromOwnUi && !Controller.Entitlements.IsPro) return;
         switch (cmd.Kind)
         {
             case UriCommandKind.Start:
@@ -232,19 +248,21 @@ public partial class App : Application
             ExtendUri: extend));
     }
 
-    // Per-launch nonce that marks a URI as originating from our own completion
-    // toast. Regenerated on every process start so a URI captured from a prior
-    // run (e.g. an Action Center entry that outlived the app) can't be replayed
-    // to bypass the Pro gate — and can't be forged by an external launcher
-    // that doesn't know this process's value.
-    private readonly string _toastNonce = Guid.NewGuid().ToString("N");
+    // Per-launch nonce that marks a URI as originating from our own UI (the
+    // completion toast and the taskbar jump list). Regenerated on every process
+    // start so a URI captured from a prior run (e.g. an Action Center entry or
+    // a stale jump list that outlived the app) can't be replayed to bypass the
+    // Pro gate — and can't be forged by an external launcher that doesn't know
+    // this process's value.
+    private readonly string _ownUiNonce = Guid.NewGuid().ToString("N");
 
-    // The exact query fragment HandleUri looks for. Built once so both the URI
-    // producer (ToastCommandUri) and consumer (HandleUri) can't drift.
-    private string ToastTrustQuery => $"src={_toastNonce}";
+    // The exact query fragment HandleUri looks for. Built once so the URI
+    // producers (ToastCommandUri, the jump-list publish) and the consumer
+    // (HandleUri) can't drift.
+    private string OwnUiTrustQuery => $"src={_ownUiNonce}";
 
     private string ToastCommandUri(string action, string query)
-        => $"{TimeBarX.Core.UriCommand.Scheme}://{action}?{query}&{ToastTrustQuery}";
+        => $"{TimeBarX.Core.UriCommand.Scheme}://{action}?{query}&{OwnUiTrustQuery}";
 
     private void OnHotkeyPressed()
     {
@@ -423,6 +441,12 @@ public partial class App : Application
 
     private void OpenSettings()
     {
+        // Re-evaluate the trial clock on this natural Pro-surface gesture (same
+        // convention as the Store check: startup + Settings open). A session
+        // that outlived the 7-day window downgrades live here — the Changed →
+        // SettingsChanged chain re-locks the Pro chips and rebuilds overlays.
+        Trial.Refresh();
+
         if (_settings is not null)
         {
             _settings.Activate();
@@ -432,6 +456,51 @@ public partial class App : Application
         _settings = window;
         window.Closed += (_, _) => _settings = null;
         window.Show();
+    }
+
+    /// <summary>
+    /// Show the loss-aversion trial-expiry prompt at most once. Skips entirely if
+    /// the trial is still active, the user already owns Pro through the Store or a
+    /// license key, or the prompt has already been shown. Marking it shown before
+    /// opening guarantees it never nags, whatever the user does in the dialog.
+    ///
+    /// On the Store build it first awaits the in-flight Store ownership refresh so
+    /// a purchaser whose entitlement hasn't been confirmed yet (fresh machine /
+    /// cleared cache) isn't shown a prompt they've already paid to never see.
+    /// </summary>
+    private async void MaybeShowTrialExpiredPrompt()
+    {
+        // Cheap early-outs first (no need to touch the Store): not expired, or the
+        // prompt already fired. An active trial also reports IsPro, so the expiry
+        // check alone already excludes "still in trial".
+        if (!Trial.HasExpired || Trial.ExpiryPromptShown) return;
+
+#if WINDOWS
+        // Avoid a false prompt on the narrow race where a Store owner's ownership
+        // hasn't been confirmed yet (fresh machine / cleared cache): the ctor's
+        // RefreshAsync is fire-and-forget, so IsPro can still read false here.
+        // Let the in-flight Store query settle before deciding. It's already
+        // running; awaiting it just orders our check after it.
+        if (PurchaseChannel is TimeBarX.App.Store.StoreEntitlements { IsStoreAvailable: true } store)
+        {
+            await store.RefreshAsync().ConfigureAwait(true);
+        }
+#else
+        // No Store on this build: nothing to wait for. Yield so the method is a
+        // genuine async no-op on the cross-platform TFM (keeps both TFMs warning
+        // -clean and the control flow identical).
+        await System.Threading.Tasks.Task.CompletedTask;
+#endif
+
+        // Re-check ownership after the (possible) refresh: a Store/license owner
+        // never sees the expiry prompt.
+        if (Controller.Entitlements.IsPro) return;
+
+        Trial.MarkExpiryPromptShown();
+
+        var dialog = new UpgradeProDialog(PurchaseChannel);
+        dialog.ShowTrialExpiredCopy();
+        dialog.Show();
     }
 
     private void OnQuitClicked(object? sender, System.EventArgs e)

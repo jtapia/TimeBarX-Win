@@ -10,18 +10,24 @@ using TimeBarX.Core;
 namespace TimeBarX.App;
 
 /// <summary>
-/// Polls while the bar is visible (1s normally; 100ms in Bottom mode, which
-/// overlays the top-most taskbar and must keep reclaiming top Z-order) and
-/// adjusts overlay visibility/Z-order on Windows:
+/// Polls while the bar is visible (1s normally; 100ms in Bottom mode or while a
+/// screensaver is running, both of which sit over top-most surfaces we must keep
+/// reclaiming) and adjusts overlay visibility/Z-order on Windows:
 ///   - hides the overlay when the foreground window's process is in the configured
 ///     exclusion list (e.g. video players)
 ///   - in Top mode, hides for an exclusive-fullscreen app so games/video aren't
 ///     covered (shell surfaces like the Start menu/Search are excluded). This
 ///     check is skipped in Bottom mode: the bounds heuristic false-positives on
 ///     shell surfaces (Start/Search) and maximized windows, which would make the
-///     taskbar-fill bar flicker away.
+///     taskbar-fill bar flicker away. It's also skipped while a screensaver is
+///     active, since the saver reports fullscreen bounds and would otherwise
+///     hide the bar instead of letting us climb over it.
 ///   - reasserts HWND_TOPMOST when it must out-rank other top-most windows:
-///     "always above everything" mode, or Bottom mode (sitting over the taskbar)
+///     "always above everything" mode, Bottom mode (sitting over the taskbar),
+///     or while a screensaver is running (sitting over the saver window).
+/// If the user has "require sign-in on resume" enabled, the saver runs on the
+/// secure desktop and no user-mode window can render there — this policy degrades
+/// silently in that case; there is no fix on the app side.
 /// All cross-platform no-ops outside Windows.
 /// </summary>
 public sealed class OverlayPolicy : IDisposable
@@ -96,6 +102,15 @@ public sealed class OverlayPolicy : IDisposable
         var foreground = GetForegroundWindow();
         var bottomMode = settings.Position == BarPosition.Bottom;
 
+        // A running screensaver is a top-most window we need to out-rank, and
+        // its fullscreen bounds would false-positive the exclusive-fullscreen
+        // check below (hiding the bar exactly when we want to climb over it).
+        // Bump cadence live so we out-race the saver reclaiming Z-order as
+        // soon as it starts, and drop back to slow when it ends.
+        var screenSaverRunning = NativeMethods.IsScreenSaverRunning();
+        var wantedCadence = (bottomMode || screenSaverRunning) ? FastCadence : SlowCadence;
+        if (_timer.Interval != wantedCadence) _timer.Interval = wantedCadence;
+
         // Resolve the foreground process name at most once per tick (an OpenProcess
         // handle). Both the hide-list match and Top mode's shell-window exclusion
         // need it; skip it only when neither consumer will run (empty hide-list and
@@ -110,8 +125,11 @@ public sealed class OverlayPolicy : IDisposable
         // The fullscreen-hide only serves Top mode (get out of a game/video's way).
         // Skip it in Bottom mode: the bounds heuristic false-positives on shell
         // surfaces (Start menu, Search) and maximized windows, which would make
-        // the taskbar-fill bar flicker away on routine interactions.
-        var foregroundIsFullscreen = !bottomMode && IsExclusiveFullscreen(foreground, foregroundProcess, _overlay);
+        // the taskbar-fill bar flicker away on routine interactions. Also skip
+        // while a screensaver is running — the saver reports fullscreen bounds
+        // and hiding here would defeat the whole point of climbing over it.
+        var foregroundIsFullscreen = !bottomMode && !screenSaverRunning
+            && IsExclusiveFullscreen(foreground, foregroundProcess, _overlay);
 
         // Default behavior (PLAN.md Mode 1): hide for known full-screen / video apps.
         // Experimental mode (PLAN.md Mode 2): also push above everything else when possible.
@@ -124,10 +142,15 @@ public sealed class OverlayPolicy : IDisposable
         if (_overlay.IsVisible != wantVisible) _overlay.IsVisible = wantVisible;
 
         // Reassert top-most when we must out-rank other top-most windows:
-        //  - experimental "always above everything" mode, or
+        //  - experimental "always above everything" mode,
         //  - Bottom mode, where we overlay the top-most taskbar and have to win
-        //    the Z-order back each time Start/Search/etc. bring it forward.
-        var needsTopmost = settings.AlwaysAboveEverything || bottomMode;
+        //    the Z-order back each time Start/Search/etc. bring it forward, or
+        //  - while a screensaver is running (also a top-most surface). If Windows
+        //    is set to require sign-in on resume, the saver runs on the secure
+        //    desktop where no user-mode window renders — SetTopmost is a harmless
+        //    no-op there; the OS simply won't show us until sign-in returns us
+        //    to the interactive desktop.
+        var needsTopmost = settings.AlwaysAboveEverything || bottomMode || screenSaverRunning;
         if (needsTopmost && !shouldHide && !foregroundIsFullscreen)
         {
             NativeMethods.SetTopmost(handle.Value);

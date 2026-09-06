@@ -134,9 +134,9 @@ public sealed record AppSettings(
     ///   <item><see cref="AlwaysAboveEverything"/> = <c>false</c></item>
     /// </list>
     /// </summary>
-    public AppSettings ClampForEntitlement(bool isPro)
+    public AppSettings ClampForEntitlement(Entitlement entitlement)
     {
-        if (isPro) return this;
+        if (entitlement.Pro) return this;
         return this with
         {
             GradientMode = false,
@@ -144,4 +144,12 @@ public sealed record AppSettings(
             AlwaysAboveEverything = false,
         };
     }
+
+    /// <summary>
+    /// Convenience overload for callers that only have the single Pro flag the
+    /// entitlement sources expose today. Delegates to
+    /// <see cref="ClampForEntitlement(Entitlement)"/>.
+    /// </summary>
+    public AppSettings ClampForEntitlement(bool isPro)
+        => ClampForEntitlement(Entitlement.FromIsPro(isPro));
 }

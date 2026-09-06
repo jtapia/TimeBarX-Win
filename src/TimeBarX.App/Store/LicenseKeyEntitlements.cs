@@ -10,8 +10,9 @@ namespace TimeBarX.App.Store;
 /// key file lives next to the timer/settings state in %APPDATA%\TimeBarX\.
 ///
 /// On the Store build this is composed alongside <see cref="StoreEntitlements"/>
-/// (via <see cref="OrEntitlements"/>) so a user who originally bought direct
-/// and later installs from the Store keeps Pro until they refund or wipe state.
+/// (via <see cref="TimeBarX.Core.CompositeEntitlements"/>) so a user who
+/// originally bought direct and later installs from the Store keeps Pro until
+/// they refund or wipe state.
 /// </summary>
 public sealed class LicenseKeyEntitlements : IEntitlements
 {
@@ -86,29 +87,4 @@ public sealed class LicenseKeyEntitlements : IEntitlements
         _isPro = value;
         Changed?.Invoke();
     }
-}
-
-/// <summary>
-/// Combines two entitlement sources: Pro if either source reports Pro. Used to
-/// merge Store IAP and direct license-key entitlements so users who purchased
-/// through one channel keep Pro after switching installation channels.
-/// </summary>
-public sealed class OrEntitlements : IEntitlements
-{
-    private readonly IEntitlements _a;
-    private readonly IEntitlements _b;
-
-    public OrEntitlements(IEntitlements a, IEntitlements b)
-    {
-        _a = a;
-        _b = b;
-        _a.Changed += Forward;
-        _b.Changed += Forward;
-    }
-
-    public bool IsPro => _a.IsPro || _b.IsPro;
-
-    public event Action? Changed;
-
-    private void Forward() => Changed?.Invoke();
 }

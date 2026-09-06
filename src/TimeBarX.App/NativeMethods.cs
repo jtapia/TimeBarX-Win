@@ -73,4 +73,25 @@ internal static class NativeMethods
         var elapsedMs = now - info.dwTime; // unsigned wraparound math
         return TimeSpan.FromMilliseconds(elapsedMs);
     }
+
+    private const uint SPI_GETSCREENSAVERRUNNING = 0x0072;
+
+    [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SystemParametersInfo(uint uiAction, uint uiParam, ref bool pvParam, uint fWinIni);
+
+    /// <summary>
+    /// True when Windows reports a screensaver is currently running on the user's
+    /// desktop. Used by the overlay policy to reassert top-most Z-order so the
+    /// progress bar stays visible above the saver window. Returns false outside
+    /// Windows or on API failure. Note: when "require sign-in on resume" is on,
+    /// the saver runs on the secure desktop and this still returns true, but no
+    /// user-mode window can render there — the caller degrades gracefully.
+    /// </summary>
+    public static bool IsScreenSaverRunning()
+    {
+        if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) return false;
+        bool running = false;
+        return SystemParametersInfo(SPI_GETSCREENSAVERRUNNING, 0, ref running, 0) && running;
+    }
 }

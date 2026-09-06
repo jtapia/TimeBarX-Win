@@ -24,6 +24,122 @@ public class EntitlementsTests
     }
 }
 
+public class CompositeEntitlementsTests
+{
+    // Minimal controllable source: flip IsPro and raise Changed on demand.
+    private sealed class FakeSource : IEntitlements
+    {
+        private bool _isPro;
+        public bool IsPro => _isPro;
+        public event Action? Changed;
+        public void Set(bool value)
+        {
+            _isPro = value;
+            Changed?.Invoke();
+        }
+    }
+
+    [Fact]
+    public void IsPro_False_WhenNoSourceIsPro()
+    {
+        using var c = new CompositeEntitlements(new FakeSource(), new FakeSource());
+        Assert.False(c.IsPro);
+    }
+
+    [Fact]
+    public void IsPro_True_WhenAnySourceIsPro()
+    {
+        var a = new FakeSource();
+        var b = new FakeSource();
+        using var c = new CompositeEntitlements(a, b);
+        b.Set(true);
+        Assert.True(c.IsPro);
+    }
+
+    [Fact]
+    public void Changed_Forwards_FromAnySource()
+    {
+        var a = new FakeSource();
+        using var c = new CompositeEntitlements(a, new FakeSource());
+        var fired = 0;
+        c.Changed += () => fired++;
+        a.Set(true);
+        Assert.Equal(1, fired);
+    }
+
+    [Fact]
+    public void Dispose_Unsubscribes_SourceChangedNoLongerForwards()
+    {
+        // The core of Finding #1: after Dispose, a source firing Changed must NOT
+        // invoke the composite's forwarder (no leaked subscription).
+        var a = new FakeSource();
+        var c = new CompositeEntitlements(a);
+        var fired = 0;
+        c.Changed += () => fired++;
+        c.Dispose();
+        a.Set(true);
+        Assert.Equal(0, fired);
+    }
+
+    [Fact]
+    public void Dispose_IsIdempotent()
+    {
+        var c = new CompositeEntitlements(new FakeSource());
+        c.Dispose();
+        c.Dispose(); // must not throw
+    }
+
+    [Fact]
+    public void NoSources_IsPro_False_AndDisposeSafe()
+    {
+        var c = new CompositeEntitlements();
+        Assert.False(c.IsPro);
+        c.Dispose();
+    }
+}
+
+public class EntitlementCapabilityTests
+{
+    [Fact]
+    public void Free_HasNoPro()
+    {
+        Assert.False(Entitlement.Free.Pro);
+    }
+
+    [Fact]
+    public void ProUnlocked_HasPro()
+    {
+        Assert.True(Entitlement.ProUnlocked.Pro);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void FromIsPro_MapsFlag(bool isPro)
+    {
+        Assert.Equal(isPro, Entitlement.FromIsPro(isPro).Pro);
+    }
+
+    [Fact]
+    public void ClampForEntitlement_EntitlementOverload_MatchesBoolOverload()
+    {
+        // The bool convenience overload must delegate to the Entitlement one:
+        // both paths produce equal results for the same Pro state.
+        var s = AppSettings.Default with
+        {
+            Color = BarColor.Purple,
+            GradientMode = true,
+            AlwaysAboveEverything = true,
+        };
+        Assert.Equal(
+            s.ClampForEntitlement(isPro: false),
+            s.ClampForEntitlement(Entitlement.Free));
+        Assert.Equal(
+            s.ClampForEntitlement(isPro: true),
+            s.ClampForEntitlement(Entitlement.ProUnlocked));
+    }
+}
+
 public class ClampForEntitlementTests
 {
     // A settings record with every field set to a non-default value (a mix of

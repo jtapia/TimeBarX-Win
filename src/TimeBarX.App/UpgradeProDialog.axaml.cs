@@ -17,6 +17,8 @@ public partial class UpgradeProDialog : Window
 {
     private readonly IEntitlements _entitlements;
     private TextBlock? _status;
+    private TextBlock? _heading;
+    private TextBlock? _intro;
     private Control? _licensePanel;
     private TextBox? _licenseInput;
     private Button? _buyButton;
@@ -38,6 +40,8 @@ public partial class UpgradeProDialog : Window
         InitializeComponent();
         _entitlements = entitlements;
         _status = this.FindControl<TextBlock>("StatusText");
+        _heading = this.FindControl<TextBlock>("HeadingText");
+        _intro = this.FindControl<TextBlock>("IntroText");
         _licensePanel = this.FindControl<Control>("LicensePanel");
         _licenseInput = this.FindControl<TextBox>("LicenseInput");
         _buyButton = this.FindControl<Button>("BuyButton");
@@ -61,6 +65,24 @@ public partial class UpgradeProDialog : Window
     }
 
     private void InitializeComponent() => AvaloniaXamlLoader.Load(this);
+
+    /// <summary>
+    /// Reframe the dialog as a trial-expiry prompt: lead with what the user just
+    /// lost (loss aversion) rather than a generic feature pitch. The Buy /
+    /// Restore / license flows are unchanged. Used by the one-time prompt shown
+    /// when the 7-day trial lapses.
+    /// </summary>
+    public void ShowTrialExpiredCopy()
+    {
+        Title = "Your TimeBarX Pro trial ended";
+        if (_heading is not null) _heading.Text = "Your Pro trial ended";
+        if (_intro is not null)
+        {
+            _intro.Text = "Your custom colors, gradient, and multi-monitor bars are "
+                + "now off. Keep them for a one-time $2.99 (regular $4.99) — no "
+                + "subscription, no account.";
+        }
+    }
 
     private void OnDismissClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e) => Close();
 

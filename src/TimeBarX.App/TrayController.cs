@@ -69,7 +69,14 @@ public sealed class TrayController : INotifyPropertyChanged
     /// layout, color, policy cadence). Re-purchase / Restore makes this equal
     /// to <see cref="Settings"/> again without the user re-entering anything.
     /// </summary>
-    public AppSettings EffectiveSettings => _settings.ClampForEntitlement(Entitlements.IsPro);
+    /// <summary>
+    /// The capabilities the current user has unlocked, derived from the single
+    /// Pro flag the composed entitlement source exposes. Gate points take this
+    /// rather than a bare bool so new axes stay additive.
+    /// </summary>
+    public Entitlement Capabilities => Entitlement.FromIsPro(Entitlements.IsPro);
+
+    public AppSettings EffectiveSettings => _settings.ClampForEntitlement(Capabilities);
 
     private UpdateInfo? _availableUpdate;
     public UpdateInfo? AvailableUpdate

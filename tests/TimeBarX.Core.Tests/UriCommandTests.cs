@@ -96,6 +96,12 @@ public class UriCommandTests
     [InlineData("timebarx://pause")]
     [InlineData("timebarx://resume")]
     [InlineData("timebarx://stop")]
+    // With the per-launch own-UI trust query appended (JumpListEntries stamps
+    // it at publish so free users' jump-list clicks pass the Pro gate):
+    [InlineData("timebarx://start?duration=25m&src=abc123")]
+    [InlineData("timebarx://pause?src=abc123")]
+    [InlineData("timebarx://resume?src=abc123")]
+    [InlineData("timebarx://stop?src=abc123")]
     public void Jump_list_uris_are_all_parseable(string uri)
     {
         Assert.True(UriCommand.TryParse(uri, out _));
